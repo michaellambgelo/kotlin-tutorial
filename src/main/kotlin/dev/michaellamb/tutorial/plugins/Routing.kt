@@ -1,0 +1,35 @@
+package dev.michaellamb.tutorial.plugins
+
+import dev.michaellamb.tutorial.health.healthRoutes
+import dev.michaellamb.tutorial.notes.NoteRepository
+import dev.michaellamb.tutorial.notes.noteRoutes
+import dev.michaellamb.tutorial.tour.collectionRoutes
+import dev.michaellamb.tutorial.tour.coroutineRoutes
+import dev.michaellamb.tutorial.tour.dataClassRoutes
+import dev.michaellamb.tutorial.tour.extensionRoutes
+import dev.michaellamb.tutorial.tour.nullSafetyRoutes
+import dev.michaellamb.tutorial.tour.scopeFunctionRoutes
+import dev.michaellamb.tutorial.tour.sealedWhenRoutes
+import io.ktor.server.application.Application
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
+
+fun Application.configureRouting() {
+    val noteRepository = NoteRepository()
+
+    routing {
+        healthRoutes()
+
+        route("/tour") {
+            dataClassRoutes()
+            nullSafetyRoutes()
+            sealedWhenRoutes()
+            coroutineRoutes()
+            extensionRoutes()
+            scopeFunctionRoutes()
+            collectionRoutes()
+        }
+
+        noteRoutes(noteRepository)
+    }
+}
