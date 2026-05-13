@@ -10,12 +10,20 @@ import dev.michaellamb.tutorial.tour.extensionRoutes
 import dev.michaellamb.tutorial.tour.nullSafetyRoutes
 import dev.michaellamb.tutorial.tour.scopeFunctionRoutes
 import dev.michaellamb.tutorial.tour.sealedWhenRoutes
+import dev.michaellamb.tutorial.widgets.WidgetCache
+import dev.michaellamb.tutorial.widgets.clusterWidget
+import dev.michaellamb.tutorial.widgets.letterboxdWidget
+import dev.michaellamb.tutorial.widgets.steamWidget
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import io.ktor.server.application.Application
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
     val noteRepository = NoteRepository()
+    val widgetClient = HttpClient(CIO)
+    val widgetCache = WidgetCache()
 
     routing {
         healthRoutes()
@@ -28,6 +36,12 @@ fun Application.configureRouting() {
             extensionRoutes()
             scopeFunctionRoutes()
             collectionRoutes()
+        }
+
+        route("/widgets") {
+            letterboxdWidget(widgetClient, widgetCache)
+            steamWidget(widgetClient, widgetCache)
+            clusterWidget(widgetClient, widgetCache)
         }
 
         noteRoutes(noteRepository)

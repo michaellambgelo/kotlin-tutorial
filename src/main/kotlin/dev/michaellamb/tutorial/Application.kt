@@ -1,5 +1,6 @@
 package dev.michaellamb.tutorial
 
+import dev.michaellamb.tutorial.plugins.configureCors
 import dev.michaellamb.tutorial.plugins.configureMonitoring
 import dev.michaellamb.tutorial.plugins.configureRouting
 import dev.michaellamb.tutorial.plugins.configureSerialization
@@ -13,5 +14,6 @@ fun main(args: Array<String>) {
 fun Application.module() {
     configureMonitoring()
     configureSerialization()
+    configureCors()
     configureRouting()
 }
