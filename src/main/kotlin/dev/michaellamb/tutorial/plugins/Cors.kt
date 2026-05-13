@@ -9,6 +9,7 @@ fun Application.configureCors() {
     install(CORS) {
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Options)
+        allowHost("blog.michaellamb.dev", schemes = listOf("https"))
         allowHost("michaellamb.dev", schemes = listOf("https"))
         allowHost("michaellambgelo.github.io", schemes = listOf("https"))
         allowHost("127.0.0.1:4000")
