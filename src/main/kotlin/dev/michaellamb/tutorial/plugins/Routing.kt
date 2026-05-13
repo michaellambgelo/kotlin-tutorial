@@ -1,6 +1,7 @@
 package dev.michaellamb.tutorial.plugins
 
 import dev.michaellamb.tutorial.health.healthRoutes
+import dev.michaellamb.tutorial.home.homeRoutes
 import dev.michaellamb.tutorial.notes.NoteRepository
 import dev.michaellamb.tutorial.notes.noteRoutes
 import dev.michaellamb.tutorial.tour.collectionRoutes
@@ -26,6 +27,7 @@ fun Application.configureRouting() {
     val widgetCache = WidgetCache()
 
     routing {
+        homeRoutes()
         healthRoutes()
 
         route("/tour") {
