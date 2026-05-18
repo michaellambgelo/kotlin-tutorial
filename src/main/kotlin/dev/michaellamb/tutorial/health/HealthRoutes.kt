@@ -1,5 +1,6 @@
 package dev.michaellamb.tutorial.health
 
+import dev.michaellamb.tutorial.BuildInfo
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
@@ -16,6 +17,6 @@ data class HealthResponse(
 fun Route.healthRoutes() {
     get("/health") {
         val uptime = (System.currentTimeMillis() - startTimeMillis) / 1000
-        call.respond(HealthResponse(status = "ok", uptimeSeconds = uptime, version = "0.1.0"))
+        call.respond(HealthResponse(status = "ok", uptimeSeconds = uptime, version = BuildInfo.version))
     }
 }

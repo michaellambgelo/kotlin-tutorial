@@ -42,3 +42,9 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.processResources {
+    filesMatching("version.properties") {
+        expand(mapOf("version" to project.version.toString()))
+    }
+}
