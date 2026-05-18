@@ -13,6 +13,7 @@ import dev.michaellamb.tutorial.tour.scopeFunctionRoutes
 import dev.michaellamb.tutorial.tour.sealedWhenRoutes
 import dev.michaellamb.tutorial.widgets.WidgetCache
 import dev.michaellamb.tutorial.widgets.clusterWidget
+import dev.michaellamb.tutorial.widgets.githubWidget
 import dev.michaellamb.tutorial.widgets.letterboxdWidget
 import dev.michaellamb.tutorial.widgets.steamWidget
 import io.ktor.client.HttpClient
@@ -44,6 +45,7 @@ fun Application.configureRouting() {
             letterboxdWidget(widgetClient, widgetCache)
             steamWidget(widgetClient, widgetCache)
             clusterWidget(widgetClient, widgetCache)
+            githubWidget(widgetClient, widgetCache)
         }
 
         noteRoutes(noteRepository)
