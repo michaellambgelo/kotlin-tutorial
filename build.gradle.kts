@@ -33,6 +33,7 @@ dependencies {
     implementation("io.ktor:ktor-client-cio")
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("ch.qos.logback:logback-classic:1.5.12")
+    implementation(kotlin("reflect")) // runtime reflection for /tour/reflection
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-content-negotiation")

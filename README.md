@@ -17,6 +17,12 @@ Deployed to `node5` of the homelab Pi cluster, reachable at `https://kotlin-tuto
 | `GET /tour/extensions` | extension functions. Query: `?text=Hello&n=17` |
 | `GET /tour/scope-functions` | `let` / `run` / `with` / `apply` / `also` side-by-side |
 | `GET /tour/collections` | `groupBy` / `sumOf` / `partition` / `runningFold` |
+| `GET /tour/generics` | bounded type params `<T : Comparable<T>>`, `out` variance, `reified` |
+| `GET /tour/higher-order-functions` | functions as values, `::` refs, composition. Query: `?x=10` |
+| `GET /tour/interfaces` | interface default methods + polymorphic dispatch |
+| `GET /tour/sequences` | lazy vs eager evaluation, short-circuit, `generateSequence` |
+| `GET /tour/result` | `runCatching` / `Result` / `fold` / `getOrElse`. Query: `?n=16` |
+| `GET /tour/reflection` | `KClass`, `memberProperties`, callable references |
 
 ### CRUD (`/notes`)
 

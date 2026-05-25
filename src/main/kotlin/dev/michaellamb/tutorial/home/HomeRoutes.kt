@@ -151,6 +151,88 @@ private val tourEndpoints: List<EndpointCard> = listOf(
             library.runningFold(0) { acc, b -> acc + b.pages }
         """.trimIndent(),
     ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/generics",
+        summary = "Generics — bounded type params, out variance, reified types.",
+        snippet = """
+            fun <T : Comparable<T>> maxOf(items: List<T>): T? = items.maxOrNull()
+
+            class Box<out T>(val value: T)               // covariant producer
+
+            inline fun <reified T> List<*>.ofType() = filterIsInstance<T>()
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/higher-order-functions?x=10",
+        summary = "Higher-order functions — functions as values, refs, composition.",
+        snippet = """
+            val double: (Int) -> Int = { it * 2 }
+
+            infix fun <A, B, C> ((A) -> B).then(g: (B) -> C): (A) -> C =
+              { a -> g(this(a)) }
+
+            listOf("luke", "leia").map(String::uppercase)  // function reference
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/interfaces",
+        summary = "Interfaces + polymorphism — default methods, dynamic dispatch.",
+        snippet = """
+            interface Animal {
+              val name: String
+              fun sound(): String
+              fun describe() = "${'$'}name says ${'$'}{sound()}"   // default method
+            }
+
+            class Dog(override val name: String) : Animal {
+              override fun sound() = "Woof"
+            }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/sequences",
+        summary = "Sequences — lazy evaluation, short-circuit, generateSequence.",
+        snippet = """
+            (1..1000).asSequence()
+              .map { it * it }        // lazy — runs per element
+              .first { it > 1000 }    // short-circuits (~32 invocations)
+
+            generateSequence(0 to 1) { (a, b) -> b to (a + b) }
+              .map { it.first }.take(10).toList()
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/result?n=16",
+        summary = "Error handling — runCatching, Result, fold, getOrElse.",
+        snippet = """
+            class NegativeInputException(n: Int) :
+              IllegalArgumentException("negative: ${'$'}n")
+
+            val folded = runCatching { checkedSqrt(n) }
+              .fold({ "ok: ${'$'}it" }, { "error: ${'$'}{it.message}" })
+
+            runCatching { checkedSqrt(-1) }.getOrElse { Double.NaN }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/reflection",
+        summary = "Reflection — KClass, memberProperties, callable references.",
+        snippet = """
+            data class Droid(val id: String, val model: String)
+
+            val props = Droid::class.memberProperties
+              .associate { it.name to it.get(r2) }
+
+            Droid::class.isData          // true
+            Droid::model.get(r2)         // callable reference
+        """.trimIndent(),
+    ),
 )
 
 private val widgetCards: List<Triple<String, String, String>> = listOf(
@@ -551,7 +633,7 @@ pre.result.err { color: var(--delete); }
 """.trimIndent()
 
 private val PAGE_JS = """
-const KW = /\b(fun|val|var|if|else|when|is|return|sealed|data|class|object|interface|suspend|coroutineScope|async|await|listOf|mapOf|with|let|run|apply|also|true|false|null|in|for|while)\b/g;
+const KW = /\b(fun|val|var|if|else|when|is|return|sealed|data|class|object|interface|suspend|coroutineScope|async|await|listOf|mapOf|with|let|run|apply|also|true|false|null|in|for|while|inline|reified|out|override|infix|by|runCatching|generateSequence)\b/g;
 const STR = /"(?:[^"\\]|\\.)*"/g;
 const NUM = /\b\d+(?:\.\d+)?\b/g;
 const COM = /\/\/[^\n]*/g;
@@ -563,7 +645,7 @@ function escapeHtml(s) {
 function highlight(code) {
   // Tokenise once into a flat list to avoid double-substitution.
   const tokens = [];
-  const pattern = /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|(\b(?:fun|val|var|if|else|when|is|return|sealed|data|class|object|interface|suspend|coroutineScope|async|await|listOf|mapOf|with|let|run|apply|also|true|false|null|in|for|while)\b)/g;
+  const pattern = /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|(\b(?:fun|val|var|if|else|when|is|return|sealed|data|class|object|interface|suspend|coroutineScope|async|await|listOf|mapOf|with|let|run|apply|also|true|false|null|in|for|while|inline|reified|out|override|infix|by|runCatching|generateSequence)\b)/g;
   let last = 0, m;
   let out = '';
   while ((m = pattern.exec(code)) !== null) {

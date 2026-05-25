@@ -8,9 +8,15 @@ import dev.michaellamb.tutorial.tour.collectionRoutes
 import dev.michaellamb.tutorial.tour.coroutineRoutes
 import dev.michaellamb.tutorial.tour.dataClassRoutes
 import dev.michaellamb.tutorial.tour.extensionRoutes
+import dev.michaellamb.tutorial.tour.genericsRoutes
+import dev.michaellamb.tutorial.tour.higherOrderFunctionRoutes
+import dev.michaellamb.tutorial.tour.interfaceRoutes
 import dev.michaellamb.tutorial.tour.nullSafetyRoutes
+import dev.michaellamb.tutorial.tour.reflectionRoutes
+import dev.michaellamb.tutorial.tour.resultRoutes
 import dev.michaellamb.tutorial.tour.scopeFunctionRoutes
 import dev.michaellamb.tutorial.tour.sealedWhenRoutes
+import dev.michaellamb.tutorial.tour.sequenceRoutes
 import dev.michaellamb.tutorial.widgets.WidgetCache
 import dev.michaellamb.tutorial.widgets.clusterWidget
 import dev.michaellamb.tutorial.widgets.githubWidget
@@ -39,6 +45,12 @@ fun Application.configureRouting() {
             extensionRoutes()
             scopeFunctionRoutes()
             collectionRoutes()
+            genericsRoutes()
+            higherOrderFunctionRoutes()
+            interfaceRoutes()
+            sequenceRoutes()
+            resultRoutes()
+            reflectionRoutes()
         }
 
         route("/widgets") {
