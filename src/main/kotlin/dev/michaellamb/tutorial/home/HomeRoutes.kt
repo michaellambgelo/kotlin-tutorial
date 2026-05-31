@@ -282,6 +282,7 @@ private fun renderHome(): String {
                     a(href = "#widgets") { +"Widgets" }
                     a(href = "#notes") { +"Notes" }
                     a(href = "#health") { +"Health" }
+                    a(href = "/swagger") { +"Swagger ↗" }
                 }
             }
             main {

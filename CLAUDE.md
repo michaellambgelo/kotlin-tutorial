@@ -13,7 +13,8 @@ Ktor 3 + Kotlin 2 + Gradle KTS service. Pedagogical: each `tour/*` route is inte
 ## Layout
 
 - `src/main/kotlin/dev/michaellamb/tutorial/Application.kt` — `EngineMain.main`, `Application.module()`
-- `plugins/` — `Serialization` (Jackson), `Monitoring` (CallLogging), `Cors` (allows blog origins), `Routing` (mounts everything)
+- `plugins/` — `Serialization` (Jackson), `Monitoring` (CallLogging), `Cors` (allows blog origins), `Routing` (mounts everything), `OpenApi` (post-processes the generated spec)
+- `/swagger` — Swagger UI with fully testable endpoints. The OpenAPI spec is generated from the live routing tree by the `ktor { openApi { codeInferenceEnabled = true } }` compiler plugin (build.gradle.kts), which infers schemas/params from each handler's `call.receive`/`respond`/`parameters` — so tour routes stay untouched. Mounted in `Routing.kt` via `swaggerUI("/swagger") { source = OpenApiDocSource.Routing(...) }`.
 - `tour/` — one file per language feature; **add new tour routes here, mount in `Routing.kt`**
 - `widgets/` — one file per server-rendered HTML widget consumed by the blog's `/now.html` and `/cluster.html`. Each demonstrates one Kotlin feature (kotlinx.html DSL, Jackson + data classes, structured concurrency, java.time time-window filtering). 60s in-memory TTL cache via `WidgetCache`.
 - `notes/` — in-memory CRUD; data resets on restart
@@ -36,3 +37,4 @@ Playbook: `~/Workspace/cluster-ops/playbooks/update-kotlin-tutorial.yml`.
 - Every tour route file has a header comment explaining the language feature it demonstrates.
 - Routes are mounted via `Route.xRoutes()` extension functions, not classes — idiomatic Ktor.
 - No persistence layer. If/when adding one, prefer Exposed (JetBrains) over JPA — pick the choice that teaches more Kotlin.
+- OpenAPI: Ktor's `openApi` compiler plugin requires **Ktor 3.5+ and Kotlin 2.2.20+** (the version floor was raised for this). Its schema generator is kotlinx.serialization-based, but runtime JSON I/O stays on **Jackson** — DTOs carry `@Serializable` (e.g. `Note`, `Shape`, `HealthResponse`) **only** so the generator can describe them; `serialization/Serializers.kt` maps `UUID`/`Instant` to string schemas. Tour handlers returning ad-hoc `Map<String, Any>` can't be schema'd (kotlinx has no `Any` serializer); `plugins/OpenApi.kt` strips the resulting "Failed to resolve schema" noise so they render as plain objects.

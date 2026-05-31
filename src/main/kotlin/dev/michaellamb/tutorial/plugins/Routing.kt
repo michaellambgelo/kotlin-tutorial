@@ -1,5 +1,6 @@
 package dev.michaellamb.tutorial.plugins
 
+import dev.michaellamb.tutorial.BuildInfo
 import dev.michaellamb.tutorial.health.healthRoutes
 import dev.michaellamb.tutorial.home.homeRoutes
 import dev.michaellamb.tutorial.notes.NoteRepository
@@ -24,7 +25,11 @@ import dev.michaellamb.tutorial.widgets.letterboxdWidget
 import dev.michaellamb.tutorial.widgets.steamWidget
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.http.ContentType
+import io.ktor.openapi.OpenApiInfo
 import io.ktor.server.application.Application
+import io.ktor.server.plugins.swagger.swaggerUI
+import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
@@ -61,5 +66,21 @@ fun Application.configureRouting() {
         }
 
         noteRoutes(noteRepository)
+
+        // Swagger UI at /swagger. The spec is assembled from the live routing tree by the
+        // ktor { openApi { } } compiler plugin (see build.gradle.kts), which infers request/
+        // response/param schemas from the call.receive/respond/parameters in each handler — so
+        // the tour routes stay untouched. Served same-origin, so Try-It-Out needs no CORS hop.
+        swaggerUI("/swagger") {
+            info = OpenApiInfo(
+                title = "kotlin-tutorial",
+                version = BuildInfo.version,
+                description = "A pedagogical Ktor service — each route demonstrates one Kotlin language feature.",
+            )
+            source = OpenApiDocSource.Routing(
+                contentType = ContentType.Application.Json,
+                serializeModel = cleanedOpenApiSerializer(),
+            )
+        }
     }
 }
