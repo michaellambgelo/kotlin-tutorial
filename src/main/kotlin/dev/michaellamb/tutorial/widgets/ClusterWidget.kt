@@ -116,14 +116,15 @@ private fun unconfiguredFragment(): String = createHTML().div("widget cluster-wi
 private val CLUSTER_CSS = """
 .cluster-widget { font-family: inherit; }
 .cluster-widget .group-name { margin: 1.25rem 0 0.5rem; font-size: 1rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; }
-.cluster-widget table { width: 100%; border-collapse: collapse; }
+.cluster-widget table { width: 100%; table-layout: fixed; border-collapse: collapse; }
 .cluster-widget th { text-align: left; padding: 0.5rem 0.75rem; font-weight: 500; font-size: 0.85rem; opacity: 0.5; border-bottom: 1px solid rgba(255,255,255,0.15); }
 .cluster-widget td { padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .cluster-widget tr:last-child td { border-bottom: none; }
-.cluster-widget .col-status, .cluster-widget .col-ping { width: 7rem; }
+.cluster-widget .col-status { width: 5.5rem; }
+.cluster-widget .col-ping { width: 4.5rem; }
 .cluster-widget .status .dot { margin-right: 0.35rem; }
 .cluster-widget .status.ok { color: #5fb573; }
 .cluster-widget .status.down { color: #e57373; }
 .cluster-widget .ping { font-variant-numeric: tabular-nums; opacity: 0.75; }
-.cluster-widget .name { font-weight: 500; }
+.cluster-widget .name { font-weight: 500; overflow-wrap: anywhere; }
 """.trimIndent()

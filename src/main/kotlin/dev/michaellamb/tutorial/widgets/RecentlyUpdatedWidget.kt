@@ -113,6 +113,16 @@ private fun relativeTime(from: Instant): String {
     }
 }
 
+private fun expiresIn(epochSeconds: Long): String {
+    val secs = epochSeconds - Instant.now().epochSecond
+    return when {
+        secs <= 0 -> "expiring"
+        secs < 3600 -> "expires in ${secs / 60}m"
+        secs < 86400 -> "expires in ${secs / 3600}h"
+        else -> "expires in ${secs / 86400}d"
+    }
+}
+
 private fun renderRecentlyUpdated(entries: List<NowEntry>): String =
     createHTML().div("widget recently-updated-widget") {
         style { unsafe { +RECENTLY_UPDATED_CSS } }
@@ -131,6 +141,7 @@ private fun renderRecentlyUpdated(entries: List<NowEntry>): String =
                         }
                     }
                     span("time") { +relativeTime(e.createdAt) }
+                    span("expires") { +expiresIn(e.expiresAt) }
                 }
             }
         }
@@ -151,5 +162,7 @@ private val RECENTLY_UPDATED_CSS = """
 .recently-updated-widget .meta a { color: inherit; text-decoration: none; }
 .recently-updated-widget .meta a:hover { text-decoration: underline; }
 .recently-updated-widget .time { font-variant-numeric: tabular-nums; }
+.recently-updated-widget .expires { font-variant-numeric: tabular-nums; font-style: italic; opacity: 0.8; }
+.recently-updated-widget .expires::before { content: "·"; margin-right: 0.75rem; opacity: 0.6; font-style: normal; }
 .recently-updated-widget .empty { opacity: 0.7; font-style: italic; }
 """.trimIndent()

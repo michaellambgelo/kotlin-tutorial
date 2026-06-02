@@ -239,6 +239,8 @@ private val widgetCards: List<Triple<String, String, String>> = listOf(
     Triple("/widgets/letterboxd", "Letterboxd", "Recent watches via RSS — kotlinx.html DSL fragment, 60s cache."),
     Triple("/widgets/steam", "Steam", "Recently played games via Steam Web API — graceful fallback if STEAM_API_KEY unset."),
     Triple("/widgets/cluster", "Cluster", "Homelab status via Uptime Kuma — parallel async fetches with structured concurrency."),
+    Triple("/widgets/github", "GitHub", "Recent commits (last 24h) via the GitHub search API — java.time rolling window + groupBy repo."),
+    Triple("/widgets/recently-updated", "Recently updated", "Hand-curated blurbs from a KV-backed Cloudflare Worker behind Cloudflare Access — an `object` client issuing authenticated GET/POST/DELETE."),
 )
 
 fun Route.homeRoutes() {
@@ -597,7 +599,7 @@ pre.result.err { color: var(--delete); }
   flex-direction: column;
   gap: 10px;
 }
-.widget-mount { background: #181a1d; border-radius: 4px; padding: 10px; min-height: 100px; color: var(--text-dim); }
+.widget-mount { background: #181a1d; border-radius: 4px; padding: 10px; min-height: 100px; color: var(--text-dim); overflow-x: auto; }
 
 .notes-app { display: grid; grid-template-columns: minmax(280px, 1fr) 2fr; gap: 16px; }
 @media (max-width: 720px) { .notes-app { grid-template-columns: 1fr; } }
