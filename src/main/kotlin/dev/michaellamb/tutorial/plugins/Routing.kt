@@ -1,6 +1,7 @@
 package dev.michaellamb.tutorial.plugins
 
 import dev.michaellamb.tutorial.BuildInfo
+import dev.michaellamb.tutorial.admin.adminRoutes
 import dev.michaellamb.tutorial.health.healthRoutes
 import dev.michaellamb.tutorial.home.homeRoutes
 import dev.michaellamb.tutorial.notes.NoteRepository
@@ -22,6 +23,7 @@ import dev.michaellamb.tutorial.widgets.WidgetCache
 import dev.michaellamb.tutorial.widgets.clusterWidget
 import dev.michaellamb.tutorial.widgets.githubWidget
 import dev.michaellamb.tutorial.widgets.letterboxdWidget
+import dev.michaellamb.tutorial.widgets.recentlyUpdatedWidget
 import dev.michaellamb.tutorial.widgets.steamWidget
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -63,7 +65,13 @@ fun Application.configureRouting() {
             steamWidget(widgetClient, widgetCache)
             clusterWidget(widgetClient, widgetCache)
             githubWidget(widgetClient, widgetCache)
+            recentlyUpdatedWidget(widgetClient, widgetCache)
         }
+
+        // Admin form for the curated "Recently updated" feed. Gated at the edge by
+        // Cloudflare Access (One-time-PIN email policy over /admin*); writes are
+        // proxied to the now-store Worker with the Access service token.
+        adminRoutes(widgetClient)
 
         noteRoutes(noteRepository)
 
