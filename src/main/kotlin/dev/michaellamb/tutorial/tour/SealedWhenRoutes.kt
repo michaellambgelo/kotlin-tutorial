@@ -19,7 +19,9 @@ import kotlin.math.sqrt
 //
 // The Jackson annotations drive runtime (de)serialization; the kotlinx @Serializable/@SerialName
 // pair drives OpenAPI schema generation, producing a oneOf with a "type" discriminator that mirrors
-// Jackson's. Both use the same discriminator property ("type") and subtype names.
+// Jackson's. Both use the same discriminator property ("type") and subtype names. The generator
+// omits the discriminator property from each subtype schema, so plugins/OpenApi.kt completes it
+// (and adds a valid request example) — keeping Swagger's "Try it out" body deserializable.
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(
     JsonSubTypes.Type(value = Shape.Circle::class, name = "Circle"),

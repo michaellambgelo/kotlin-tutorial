@@ -44,4 +44,20 @@ class SwaggerRoutesTest {
             "resolver-error descriptions should be stripped from the spec",
         )
     }
+
+    @Test
+    fun `sealed-when request body is deserializable from swagger`() = testApplication {
+        application { module() }
+        val spec = client.get("/swagger/documentation.yaml").bodyAsText()
+        // plugins/OpenApi.kt injects the missing "type" discriminator into each Shape subtype so the
+        // schema is complete and Swagger builds a body Jackson accepts.
+        assertTrue(spec.contains("\"enum\":[\"Circle\"]"), "Circle subtype should declare its discriminator value")
+        assertTrue(spec.contains("\"enum\":[\"Square\"]"), "Square subtype should declare its discriminator value")
+        assertTrue(spec.contains("\"enum\":[\"Triangle\"]"), "Triangle subtype should declare its discriminator value")
+        // ...and pins an explicit, valid example onto the request body.
+        assertTrue(
+            spec.contains("\"example\":{\"type\":\"Circle\",\"radius\":3.0}"),
+            "sealed-when request body should carry a deserializable example",
+        )
+    }
 }
