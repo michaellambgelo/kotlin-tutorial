@@ -95,16 +95,3 @@ All optional — widgets and admin degrade gracefully when unset.
 ./gradlew test           # run all tests
 ./gradlew installDist    # produce build/install/kotlin-tutorial/
 ```
-
-## Build & deploy
-
-Push to `main` → GitHub Actions builds a multi-arch image (`linux/amd64,linux/arm64`) and pushes to `ghcr.io/michaellambgelo/kotlin-tutorial:latest`.
-
-Deploy to node5:
-
-```bash
-cd ~/Workspace/cluster-ops
-ansible-playbook playbooks/update-kotlin-tutorial.yml
-```
-
-The playbook captures a `:rollback` tag, pulls the new image, swaps the container, and waits for the in-container `HEALTHCHECK` to report healthy.
