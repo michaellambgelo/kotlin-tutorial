@@ -1,5 +1,9 @@
 # kotlin-tutorial
 
+[![Status](https://status.michaellamb.dev/api/badge/15/status)](https://status.michaellamb.dev)
+[![Uptime (24h)](https://status.michaellamb.dev/api/badge/15/uptime/24)](https://status.michaellamb.dev)
+[![Ping](https://status.michaellamb.dev/api/badge/15/ping)](https://status.michaellamb.dev)
+
 Ktor service whose endpoints are written to teach Kotlin language features. Plus a small in-memory CRUD module for `/notes`.
 
 An interactive homepage at `/` lists every route with live "Run ▶" buttons, `/swagger` exposes a fully testable Swagger UI, and `/widgets/*` serves server-rendered HTML fragments for the blog dashboard.
