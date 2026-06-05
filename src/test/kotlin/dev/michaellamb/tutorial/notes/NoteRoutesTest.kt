@@ -13,6 +13,11 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
+import org.junit.jupiter.api.io.TempDir
+import java.io.File
+import java.util.UUID
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -20,6 +25,24 @@ import kotlin.test.assertTrue
 class NoteRoutesTest {
 
     private val mapper = ObjectMapper()
+
+    // Each test gets its own on-disk SQLite file so they stay isolated (and the "initial list is
+    // empty" assertion holds). NotesDatabase.connect() reads notes.db.path before NOTES_DB_PATH/the
+    // default, so setting it here — before module() runs — points this test app at a throwaway DB.
+    // An on-disk temp file (not jdbc:sqlite::memory:) because newSuspendedTransaction may use a
+    // distinct connection per transaction, which would lose an in-memory DB between calls.
+    @TempDir
+    lateinit var tmp: File
+
+    @BeforeTest
+    fun setDbPath() {
+        System.setProperty("notes.db.path", File(tmp, "notes-${UUID.randomUUID()}.db").absolutePath)
+    }
+
+    @AfterTest
+    fun clearDbPath() {
+        System.clearProperty("notes.db.path")
+    }
 
     @Test
     fun `full CRUD roundtrip`() = testApplication {

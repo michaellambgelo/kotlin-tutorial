@@ -43,6 +43,16 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.12")
     implementation(kotlin("reflect")) // runtime reflection for /tour/reflection
 
+    // Persistence for /notes — Exposed DSL over SQLite-on-disk (see notes/NotesDatabase.kt). DSL,
+    // not DAO: NoteRepository maps ResultRow <-> the Note data class by hand, so Note + its Jackson
+    // runtime JSON / @Serializable OpenAPI schema stay untouched. createdAt is stored as epoch
+    // millis (a long column), NOT exposed-java-time's timestamp() — that column type shifts the
+    // Instant by the local UTC offset on SQLite round-trips. sqlite-jdbc bundles the Linux/aarch64
+    // native lib for the arm64-only Pi image (node5) plus Mac/aarch64 for local + node0 builds.
+    implementation("org.jetbrains.exposed:exposed-core:0.61.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.61.0")
+    implementation("org.xerial:sqlite-jdbc:3.50.1.0")
+
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-content-negotiation")
     testImplementation(kotlin("test"))

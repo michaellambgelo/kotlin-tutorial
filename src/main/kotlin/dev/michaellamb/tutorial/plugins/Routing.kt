@@ -5,6 +5,7 @@ import dev.michaellamb.tutorial.admin.adminRoutes
 import dev.michaellamb.tutorial.health.healthRoutes
 import dev.michaellamb.tutorial.home.homeRoutes
 import dev.michaellamb.tutorial.notes.NoteRepository
+import dev.michaellamb.tutorial.notes.NotesDatabase
 import dev.michaellamb.tutorial.notes.noteRoutes
 import dev.michaellamb.tutorial.tour.collectionRoutes
 import dev.michaellamb.tutorial.tour.coroutineRoutes
@@ -36,7 +37,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
-    val noteRepository = NoteRepository()
+    val noteRepository = NoteRepository(NotesDatabase.connect())
     val widgetClient = HttpClient(CIO)
     val widgetCache = WidgetCache()
 
