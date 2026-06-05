@@ -31,9 +31,13 @@ Ktor 3 + Kotlin 2 + Gradle KTS service. Pedagogical: each `tour/*` route is inte
 
 ## Deploy
 
-Image: `ghcr.io/michaellambgelo/kotlin-tutorial:latest` (multi-arch, built by `.github/workflows/build-and-push.yml`).
+Image: `ghcr.io/michaellambgelo/kotlin-tutorial:latest` (**arm64-only**, built natively on **node0**, the M4 Mac mini control node).
 Host: `node5`. Public URL: `https://kotlin-tutorial.michaellamb.dev`.
 Playbook: `~/Workspace/cluster-ops/playbooks/update-kotlin-tutorial.yml`.
+
+Run **`/deploy`** from this repo (wraps `scripts/deploy.sh`): pushes `main`, then SSHes node0 to run `cluster-ops/scripts/node0-build-deploy.sh kotlin-tutorial` — native arm64 build → push GHCR (`:latest` + `:sha-<short>`) → the playbook pulls on node5, tags the previous image `:rollback`, restarts, and health-gates.
+
+GitHub Actions (`.github/workflows/build-and-push.yml`) still runs **tests on push**, but its image-build job is **`workflow_dispatch`-only** — a manual multi-arch (QEMU) fallback, e.g. if an amd64 image is ever needed.
 
 ## Conventions
 
