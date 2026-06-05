@@ -22,8 +22,13 @@ jobs:
       - name: Run tests
         run: ./gradlew --no-daemon test
 
+  # Image builds moved to node0 (Mac mini, native arm64 — see cluster-ops
+  # scripts/node0-build-deploy.sh, driven by scripts/deploy.sh / `/deploy`).
+  # Tests still run on every push; this job is manual-dispatch fallback only
+  # (full multi-arch via QEMU) — e.g. if an amd64 image is ever needed.
   build-and-push:
     needs: test
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read

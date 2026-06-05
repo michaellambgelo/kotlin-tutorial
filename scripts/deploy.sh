@@ -1,39 +1,27 @@
 #!/usr/bin/env bash
 # deploy-branch: main
 set -euo pipefail
+# Phase 3: node0 (M4 Mac mini) builds the arm64 image natively and auto-deploys.
+# This script pushes main, then triggers node0's build-deploy pipeline over SSH:
+#   build linux/arm64 -> push ghcr.io/michaellambgelo/kotlin-tutorial -> update-kotlin-tutorial.yml (node5) -> health.
+# (Replaces the old "push + watch GH Actions build" flow; GH build workflow is now workflow_dispatch-only.)
+NODE0="${NODE0_HOST:-node0}"
 
-# Phase 1: push code; CI (build-and-push.yml) builds the multi-arch image and
-# pushes it to ghcr.io/michaellambgelo/kotlin-tutorial. Router watches the
-# workflow run after this script exits 0.
 echo "::deploy:target=image:start"
-echo "::deploy:target=image:watch=build-and-push.yml"
-if [[ "${DEPLOY_TARGET:-}" != "" && "${DEPLOY_TARGET}" != "image" && "${DEPLOY_TARGET}" != "cluster" ]]; then
-  echo "unknown DEPLOY_TARGET: ${DEPLOY_TARGET} (expected: image, cluster, or unset)" >&2
-  exit 2
-fi
-
-if [[ "${DEPLOY_TARGET:-}" != "cluster" ]]; then
-  if [[ "${DEPLOY_DRY_RUN:-}" = 1 ]]; then
-    echo "would: git push origin main"
-  else
-    git push origin main
-  fi
-  echo "::deploy:target=image:end:status=ok"
-else
+if [[ "${DEPLOY_DRY_RUN:-}" = 1 ]]; then
+  echo "would: git push origin main"
+  echo "would: ssh $NODE0 'bash ~/Workspace/cluster-ops/scripts/node0-build-deploy.sh kotlin-tutorial'"
   echo "::deploy:target=image:end:status=skip"
+  echo "::deploy:target=cluster:end:status=skip"
+  exit 0
 fi
 
-# Phase 2: run the Ansible playbook from ~/Workspace/cluster-ops to pull the
-# new image on node5 and restart the container.
+# Push code so node0 builds the current main.
+git push origin main
+echo "::deploy:target=image:end:status=ok"
+
+# node0 builds (arm64, native) + pushes GHCR + runs the update playbook (health-gated).
 echo "::deploy:target=cluster:start"
-if [[ "${DEPLOY_TARGET:-}" != "image" ]]; then
-  if [[ "${DEPLOY_DRY_RUN:-}" = 1 ]]; then
-    echo "would: (cd ~/Workspace/cluster-ops && ansible-playbook playbooks/update-kotlin-tutorial.yml)"
-  else
-    ( cd "$HOME/Workspace/cluster-ops" && ansible-playbook playbooks/update-kotlin-tutorial.yml )
-  fi
-  echo "::deploy:target=cluster:url=https://kotlin-tutorial.michaellamb.dev"
-  echo "::deploy:target=cluster:end:status=ok"
-else
-  echo "::deploy:target=cluster:end:status=skip"
-fi
+ssh "$NODE0" 'bash ~/Workspace/cluster-ops/scripts/node0-build-deploy.sh kotlin-tutorial'
+echo "::deploy:target=cluster:url=https://kotlin-tutorial.michaellamb.dev"
+echo "::deploy:target=cluster:end:status=ok"
