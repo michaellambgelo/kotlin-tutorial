@@ -344,6 +344,7 @@ private fun renderHome(): String {
                                     id = "note-body"
                                     rows = "3"
                                     placeholder = "milk, eggs, kotlin"
+                                    attributes["oninput"] = "notesAutosize(this)"
                                 }
                             }
                             div("button-row") {
@@ -755,11 +756,17 @@ async function notesRefresh() {
   }
 }
 
+function notesAutosize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 function notesStartEdit(n) {
   document.getElementById('notes-form-title').textContent = 'Edit note · ' + n.id.slice(0, 8);
   document.getElementById('note-edit-id').value = n.id;
   document.getElementById('note-title').value = n.title;
   document.getElementById('note-body').value = n.body;
+  notesAutosize(document.getElementById('note-body'));
   document.getElementById('note-submit').textContent = 'Update (PUT)';
 }
 
@@ -768,6 +775,7 @@ function notesResetForm() {
   document.getElementById('note-edit-id').value = '';
   document.getElementById('note-title').value = '';
   document.getElementById('note-body').value = '';
+  document.getElementById('note-body').style.height = '';
   document.getElementById('note-submit').textContent = 'Create (POST)';
 }
 
