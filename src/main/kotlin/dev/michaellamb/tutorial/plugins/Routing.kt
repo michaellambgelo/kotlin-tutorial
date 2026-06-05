@@ -2,11 +2,14 @@ package dev.michaellamb.tutorial.plugins
 
 import dev.michaellamb.tutorial.BuildInfo
 import dev.michaellamb.tutorial.admin.adminRoutes
+import dev.michaellamb.tutorial.admin.projectsAdminRoutes
 import dev.michaellamb.tutorial.health.healthRoutes
 import dev.michaellamb.tutorial.home.homeRoutes
 import dev.michaellamb.tutorial.notes.NoteRepository
 import dev.michaellamb.tutorial.notes.NotesDatabase
 import dev.michaellamb.tutorial.notes.noteRoutes
+import dev.michaellamb.tutorial.projects.ProjectRepository
+import dev.michaellamb.tutorial.projects.ProjectsDatabase
 import dev.michaellamb.tutorial.tour.collectionRoutes
 import dev.michaellamb.tutorial.tour.coroutineRoutes
 import dev.michaellamb.tutorial.tour.dataClassRoutes
@@ -24,6 +27,7 @@ import dev.michaellamb.tutorial.widgets.WidgetCache
 import dev.michaellamb.tutorial.widgets.clusterWidget
 import dev.michaellamb.tutorial.widgets.githubWidget
 import dev.michaellamb.tutorial.widgets.letterboxdWidget
+import dev.michaellamb.tutorial.widgets.projectsWidget
 import dev.michaellamb.tutorial.widgets.recentlyUpdatedWidget
 import dev.michaellamb.tutorial.widgets.steamWidget
 import io.ktor.client.HttpClient
@@ -38,6 +42,7 @@ import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
     val noteRepository = NoteRepository(NotesDatabase.connect())
+    val projectRepository = ProjectRepository(ProjectsDatabase.connect()).apply { seedDefaults() }
     val widgetClient = HttpClient(CIO)
     val widgetCache = WidgetCache()
 
@@ -67,12 +72,14 @@ fun Application.configureRouting() {
             clusterWidget(widgetClient, widgetCache)
             githubWidget(widgetClient, widgetCache)
             recentlyUpdatedWidget(widgetClient, widgetCache)
+            projectsWidget(projectRepository, widgetCache)
         }
 
-        // Admin form for the curated "Recently updated" feed. Gated at the edge by
-        // Cloudflare Access (One-time-PIN email policy over /admin*); writes are
-        // proxied to the now-store Worker with the Access service token.
+        // Admin forms, both gated at the edge by Cloudflare Access (One-time-PIN email policy over
+        // /admin*). The "Recently updated" admin proxies writes to the now-store Worker; the
+        // projects admin writes straight to the local SQLite store on the volume.
         adminRoutes(widgetClient)
+        projectsAdminRoutes(projectRepository)
 
         noteRoutes(noteRepository)
 

@@ -103,6 +103,7 @@ private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean): Strin
         }
         body {
             div("wrap") {
+                p("nav") { a(href = "/admin/projects") { +"Projects →" } }
                 h1 { +"Recently updated — admin" }
                 p("sub") { +"Publish a short blurb to the /now page. Entries expire automatically." }
 
@@ -177,6 +178,9 @@ private val ADMIN_CSS = """
 * { box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; margin: 0; padding: 2rem 1rem; line-height: 1.5; }
 .wrap { max-width: 640px; margin: 0 auto; }
+.nav { margin: 0 0 1rem; font-size: 0.85rem; }
+.nav a { color: inherit; opacity: 0.7; text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
 h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
 h2 { font-size: 1.05rem; margin: 2rem 0 0.5rem; }
 .sub { opacity: 0.6; margin: 0 0 1.5rem; font-size: 0.9rem; }
