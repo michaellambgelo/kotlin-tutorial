@@ -316,13 +316,15 @@ private fun renderHome(): String {
                 }
                 section("group") {
                     id = "notes"
-                    h2 { +"Notes (in-memory CRUD)" }
+                    h2 { +"Notes (CRUD)" }
                     p("group-blurb") {
                         +"Exercises all five "
                         code { +"/notes" }
-                        +" verbs. Data lives in a "
-                        code { +"ConcurrentHashMap" }
-                        +" — restarts wipe everything."
+                        +" verbs. Data is persisted to "
+                        code { +"SQLite" }
+                        +" on disk via "
+                        code { +"Exposed" }
+                        +" — it survives restarts."
                     }
                     div("notes-app") {
                         div("notes-form") {
