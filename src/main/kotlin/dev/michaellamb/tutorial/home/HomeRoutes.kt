@@ -274,7 +274,7 @@ private fun renderHome(): String {
                     +"Click "
                     code { +"Run ▶" }
                     +" on any card to call the live endpoint. "
-                    a(href = "https://github.com/MichaelLambGelo/kotlin-tutorial", target = "_blank") {
+                    a(href = "https://github.com/michaellambgelo/kotlin-tutorial", target = "_blank") {
                         attributes["rel"] = "noopener"
                         +"Source on GitHub →"
                     }
@@ -399,9 +399,9 @@ private fun renderHome(): String {
             footer("page-footer") {
                 p {
                     +"Kotlin 2 · Ktor 3 · JDK 21 · "
-                    a(href = "https://github.com/MichaelLambGelo/kotlin-tutorial") {
+                    a(href = "https://github.com/michaellambgelo/kotlin-tutorial") {
                         attributes["rel"] = "noopener"
-                        +"github.com/MichaelLambGelo/kotlin-tutorial"
+                        +"github.com/michaellambgelo/kotlin-tutorial"
                     }
                 }
             }
