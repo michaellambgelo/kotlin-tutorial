@@ -175,8 +175,8 @@ class ProjectRepository(private val db: Database) {
                 archived = false,
             ),
             ProjectInput(
-                name = "boxd-card.michaellamb.dev",
-                url = "https://boxd-card.michaellamb.dev",
+                name = "boxd-card.com",
+                url = "https://boxd-card.com",
                 description = "Shareable PNG cards from a Letterboxd profile",
                 statusMonitorId = 12,
                 tech = listOf("React", "TypeScript", "Vite"),

@@ -57,7 +57,7 @@ class ProjectsRoutesTest {
         val html = resp.bodyAsText()
         assertTrue(html.contains("Projects — admin"))
         assertTrue(html.contains("Add project"))
-        assertTrue(html.contains("boxd-card.michaellamb.dev"), "lists a seeded project")
+        assertTrue(html.contains("boxd-card.com"), "lists a seeded project")
     }
 
     @Test
