@@ -27,6 +27,7 @@ import dev.michaellamb.tutorial.widgets.WidgetCache
 import dev.michaellamb.tutorial.widgets.clusterWidget
 import dev.michaellamb.tutorial.widgets.githubWidget
 import dev.michaellamb.tutorial.widgets.letterboxdWidget
+import dev.michaellamb.tutorial.widgets.nowDigest
 import dev.michaellamb.tutorial.widgets.projectsWidget
 import dev.michaellamb.tutorial.widgets.recentlyUpdatedWidget
 import dev.michaellamb.tutorial.widgets.steamWidget
@@ -72,6 +73,7 @@ fun Application.configureRouting() {
             clusterWidget(widgetClient, widgetCache)
             githubWidget(widgetClient, widgetCache)
             recentlyUpdatedWidget(widgetClient, widgetCache)
+            nowDigest(widgetClient, widgetCache)
             projectsWidget(projectRepository, widgetCache)
         }
 

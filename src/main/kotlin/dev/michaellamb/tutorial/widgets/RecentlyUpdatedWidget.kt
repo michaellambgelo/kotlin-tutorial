@@ -15,6 +15,7 @@
 package dev.michaellamb.tutorial.widgets
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.ktor.client.HttpClient
@@ -42,6 +43,13 @@ import java.time.Instant
 private const val CACHE_KEY = "recently-updated"
 private val TTL: Duration = Duration.ofSeconds(60)
 
+// Shared Jackson mapper for now-store JSON: `findAndRegisterModules()` pulls in JavaTimeModule, and
+// disabling WRITE_DATES_AS_TIMESTAMPS makes `Instant` fields serialize as ISO-8601 (matching the
+// now-store shape and what JSON consumers parse) rather than a numeric epoch. Used by NowStore
+// (deserialize) and the /now digest endpoint (serialize — see NowDigest.kt).
+internal val nowStoreMapper = jacksonObjectMapper().findAndRegisterModules()
+    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NowEntry(
     val id: String,
@@ -61,7 +69,6 @@ object NowStore {
         System.getenv("NOW_STORE_URL")?.takeIf { it.isNotBlank() } ?: "https://now-store.michaellamb.dev"
     private val clientId: String? = System.getenv("CF_ACCESS_CLIENT_ID")?.takeIf { it.isNotBlank() }
     private val clientSecret: String? = System.getenv("CF_ACCESS_CLIENT_SECRET")?.takeIf { it.isNotBlank() }
-    private val mapper = jacksonObjectMapper().findAndRegisterModules()
 
     private fun HttpRequestBuilder.accessHeaders() {
         if (clientId != null && clientSecret != null) {
@@ -72,7 +79,7 @@ object NowStore {
 
     suspend fun list(client: HttpClient): List<NowEntry> {
         val body = client.get("$baseUrl/entries") { accessHeaders() }.bodyAsText()
-        return mapper.readValue(body)
+        return nowStoreMapper.readValue(body)
     }
 
     suspend fun create(client: HttpClient, body: String, url: String?, expiry: String) {
@@ -84,7 +91,7 @@ object NowStore {
         client.post("$baseUrl/entries") {
             accessHeaders()
             contentType(ContentType.Application.Json)
-            setBody(mapper.writeValueAsString(payload))
+            setBody(nowStoreMapper.writeValueAsString(payload))
         }
     }
 

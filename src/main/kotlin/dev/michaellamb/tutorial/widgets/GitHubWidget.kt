@@ -67,17 +67,20 @@ private data class Repository(
     @JsonProperty("html_url") val htmlUrl: String,
 )
 
-private data class RepoGroup(val repo: String, val repoUrl: String, val commits: List<RenderedCommit>, val latest: Instant)
-private data class RenderedCommit(val shortSha: String, val title: String, val url: String)
+internal data class RepoGroup(val repo: String, val repoUrl: String, val commits: List<RenderedCommit>, val latest: Instant)
+internal data class RenderedCommit(val shortSha: String, val title: String, val url: String)
 
 fun Route.githubWidget(client: HttpClient, cache: WidgetCache) {
     get("/github") {
         val html = cache.getOrCompute(CACHE_KEY, TTL) {
-            renderGitHub(group(fetchCommits(client)))
+            renderGitHub(fetchRepoGroups(client))
         }
         call.respondText(html, ContentType.Text.Html)
     }
 }
+
+/** Fetches the last 24h of commits, grouped by repo (newest repo first). Shared by the HTML widget and the /now digest. */
+internal suspend fun fetchRepoGroups(client: HttpClient): List<RepoGroup> = group(fetchCommits(client))
 
 private suspend fun fetchCommits(client: HttpClient): List<CommitItem> {
     val since = Instant.now().minus(WINDOW)

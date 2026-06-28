@@ -58,18 +58,26 @@ fun Route.steamWidget(client: HttpClient, cache: WidgetCache) {
             return@get
         }
         val html = cache.getOrCompute(CACHE_KEY, TTL) {
-            val url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/" +
-                "?key=$steamApiKey&steamid=$steamId&include_appinfo=1&include_played_free_games=1&format=json"
-            val body = client.get(url).bodyAsText()
-            val games = mapper.readValue(body, SteamResponse::class.java).response.games
-            val recent = games
-                .filter { (it.playtimeRecent ?: 0) > 0 }
-                .sortedByDescending { it.lastPlayedEpoch ?: 0L }
-                .take(5)
-            renderSteam(recent)
+            renderSteam(fetchRecentGames(client))
         }
         call.respondText(html, ContentType.Text.Html)
     }
+}
+
+/**
+ * Returns games played in the last two weeks (newest first, top 5). Empty when Steam is
+ * unconfigured. Shared by the HTML widget and the /now digest.
+ */
+internal suspend fun fetchRecentGames(client: HttpClient): List<SteamGame> {
+    if (steamApiKey == null || steamId == null) return emptyList()
+    val url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/" +
+        "?key=$steamApiKey&steamid=$steamId&include_appinfo=1&include_played_free_games=1&format=json"
+    val body = client.get(url).bodyAsText()
+    val games = mapper.readValue(body, SteamResponse::class.java).response.games
+    return games
+        .filter { (it.playtimeRecent ?: 0) > 0 }
+        .sortedByDescending { it.lastPlayedEpoch ?: 0L }
+        .take(5)
 }
 
 private fun formatPlaytime(minutes: Int): String = when {

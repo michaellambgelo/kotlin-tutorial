@@ -43,11 +43,16 @@ data class Film(
 fun Route.letterboxdWidget(client: HttpClient, cache: WidgetCache) {
     get("/letterboxd") {
         val html = cache.getOrCompute(CACHE_KEY, TTL) {
-            val rss = client.get(feedUrl).bodyAsText()
-            renderLetterboxd(parseLetterboxd(rss))
+            renderLetterboxd(fetchFilms(client))
         }
         call.respondText(html, ContentType.Text.Html)
     }
+}
+
+/** Fetches the public RSS feed and parses the most recent watches. Shared by the HTML widget and the /now digest. */
+internal suspend fun fetchFilms(client: HttpClient): List<Film> {
+    val rss = client.get(feedUrl).bodyAsText()
+    return parseLetterboxd(rss)
 }
 
 private fun parseLetterboxd(rss: String): List<Film> {
