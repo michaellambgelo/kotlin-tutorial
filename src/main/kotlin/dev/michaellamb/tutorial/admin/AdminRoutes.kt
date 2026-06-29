@@ -25,6 +25,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import kotlinx.coroutines.launch
 import kotlinx.html.ButtonType
 import kotlinx.html.FormMethod
 import kotlinx.html.InputType
@@ -68,7 +69,12 @@ fun Route.adminRoutes(client: HttpClient) {
             val url = params["url"]?.trim()?.takeIf { it.isNotBlank() }
             val expiry = params["expiry"]?.takeIf { it in VALID_EXPIRY } ?: "today"
             if (body.isNotBlank()) {
-                runCatching { NowStore.create(client, body, url, expiry) }
+                val entry = runCatching { NowStore.create(client, body, url, expiry) }.getOrNull()
+                // Push the saved note to homelab-bot (#general) without blocking the redirect or
+                // letting a bot-side hiccup fail the publish. Best-effort: no retry.
+                if (entry != null) {
+                    call.application.launch { runCatching { NoteHook.announce(client, entry) } }
+                }
             }
             call.respondRedirect("/admin")
         }

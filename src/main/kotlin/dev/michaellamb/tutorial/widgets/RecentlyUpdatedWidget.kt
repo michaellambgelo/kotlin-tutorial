@@ -27,6 +27,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -82,16 +83,22 @@ object NowStore {
         return nowStoreMapper.readValue(body)
     }
 
-    suspend fun create(client: HttpClient, body: String, url: String?, expiry: String) {
+    /** Creates an entry; returns the persisted entry (from the Worker's 201 body) or null on failure. */
+    suspend fun create(client: HttpClient, body: String, url: String?, expiry: String): NowEntry? {
         val payload = buildMap {
             put("body", body)
             put("expiry", expiry)
             if (!url.isNullOrBlank()) put("url", url)
         }
-        client.post("$baseUrl/entries") {
+        val response = client.post("$baseUrl/entries") {
             accessHeaders()
             contentType(ContentType.Application.Json)
             setBody(nowStoreMapper.writeValueAsString(payload))
+        }
+        return if (response.status == HttpStatusCode.Created) {
+            nowStoreMapper.readValue<NowEntry>(response.bodyAsText())
+        } else {
+            null
         }
     }
 

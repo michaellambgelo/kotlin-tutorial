@@ -55,6 +55,7 @@ dependencies {
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-content-negotiation")
+    testImplementation("io.ktor:ktor-client-mock")
     testImplementation(kotlin("test"))
 }
 
