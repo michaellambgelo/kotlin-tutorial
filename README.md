@@ -91,6 +91,7 @@ All optional — widgets and admin degrade gracefully when unset.
 | `GITHUB_TOKEN` | github widget | — (optional; raises API rate limit) |
 | `NOW_STORE_URL` | recently-updated widget, admin | `https://now-store.michaellamb.dev` |
 | `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | recently-updated widget, admin | — (Cloudflare Access service token) |
+| `HOMELAB_BOT_NOTE_HOOK_URL`, `NOTE_HOOK_SECRET` | admin — push new notes to homelab-bot (#general embed) | — (push is a no-op when unset) |
 
 ## Local development
 
