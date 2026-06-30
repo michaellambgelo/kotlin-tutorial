@@ -81,7 +81,12 @@ fun Route.adminRoutes(client: HttpClient) {
 
         post("/entries/{id}/delete") {
             call.parameters["id"]?.takeIf { it.isNotBlank() }?.let { id ->
-                runCatching { NowStore.delete(client, id) }
+                val deleted = runCatching { NowStore.delete(client, id) }.isSuccess
+                // Mirror the create-side push: retract the Discord embed only after a confirmed
+                // delete, without blocking the redirect or failing the delete on a bot-side hiccup.
+                if (deleted) {
+                    call.application.launch { runCatching { NoteHook.retract(client, id) } }
+                }
             }
             call.respondRedirect("/admin")
         }

@@ -40,8 +40,25 @@ class NoteHookTest {
         assertEquals("http://node4.lan:8080/hooks/now-entry", req.url.toString())
         assertEquals("Bearer test-secret", req.headers[HttpHeaders.Authorization])
         val text = (req.body as TextContent).text
+        assertTrue(text.contains("\"abc\""), text)
         assertTrue(text.contains("Shipped it"), text)
         assertTrue(text.contains("https://blog.example/x"), text)
         assertTrue(text.contains("2026-06-28T12:00:00Z"), text)
+    }
+
+    @Test
+    fun `retract DELETEs the entry-scoped resource with a bearer-authed request`() = runBlocking {
+        val captured = AtomicReference<HttpRequestData?>(null)
+        val engine = MockEngine { req ->
+            captured.set(req)
+            respond(ByteReadChannel(""), HttpStatusCode.NoContent)
+        }
+
+        NoteHook.retract(HttpClient(engine), "abc", "http://node4.lan:8080/hooks/now-entry", "test-secret")
+
+        val req = assertNotNull(captured.get())
+        assertEquals("http://node4.lan:8080/hooks/now-entry/abc", req.url.toString())
+        assertEquals("Bearer test-secret", req.headers[HttpHeaders.Authorization])
+        assertEquals(io.ktor.http.HttpMethod.Delete, req.method)
     }
 }
