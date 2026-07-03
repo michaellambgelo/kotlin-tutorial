@@ -213,8 +213,15 @@ a:hover { text-decoration: underline; }
 
 .signage-page {
   /* A TV can't scroll — hard-cap to one viewport; anything a card can't fit
-     gets clipped inside that card (see .signage-card), never below the fold. */
-  height: 100vh;
+     gets clipped inside that card (see .signage-card), never below the fold.
+     Laid out at 133.33vw/vh and scaled down to 0.75 (not shrunk property by
+     property) so every element — fonts, posters, icons, gaps — gets 1/0.75
+     more absolute CSS space to work with before anything needs to wrap or
+     clip, while still exactly filling the physical screen after the scale. */
+  width: 133.333vw;
+  height: 133.333vh;
+  transform: scale(0.75);
+  transform-origin: top left;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -321,7 +328,7 @@ a:hover { text-decoration: underline; }
   font-weight: 600;
   color: var(--heading);
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
