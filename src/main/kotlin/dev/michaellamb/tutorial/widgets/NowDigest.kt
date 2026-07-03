@@ -20,6 +20,7 @@ import io.ktor.server.routing.get
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.time.Duration
+import java.time.Instant
 
 private const val DIGEST_CACHE_KEY = "now.json"
 private val DIGEST_TTL: Duration = Duration.ofSeconds(60)
@@ -32,10 +33,21 @@ data class NowDigest(
     val repos: List<DigestRepo>,
 )
 
-data class DigestFilm(val title: String, val year: String?, val rating: Double?, val link: String?)
-data class DigestGame(val name: String, val recentMinutes: Int, val totalMinutes: Int)
-data class DigestRepo(val repo: String, val url: String, val commits: List<DigestCommit>)
+data class DigestFilm(
+    val title: String,
+    val year: String?,
+    val rating: Double?,
+    val link: String?,
+    val posterUrl: String?,
+    val watchedDate: String?,
+)
+data class DigestGame(val name: String, val recentMinutes: Int, val totalMinutes: Int, val iconUrl: String?)
+data class DigestRepo(val repo: String, val url: String, val commits: List<DigestCommit>, val latest: Instant)
 data class DigestCommit(val sha: String, val title: String, val url: String)
+
+/** Steam's fixed CDN convention for a game's small square icon; null if the API omitted a hash. */
+private fun steamIconUrl(appid: Int, iconHash: String?): String? =
+    iconHash?.let { "https://media.steampowered.com/steamcommunity/public/images/apps/$appid/$it.jpg" }
 
 fun Route.nowDigest(client: HttpClient, cache: WidgetCache) {
     get("/now.json") {
@@ -55,10 +67,14 @@ internal suspend fun buildDigest(client: HttpClient): NowDigest = coroutineScope
 
     NowDigest(
         recentlyUpdated = updated.await(),
-        films = films.await().map { DigestFilm(it.title, it.year, it.rating, it.link) },
-        games = games.await().map { DigestGame(it.name, it.playtimeRecent ?: 0, it.playtimeTotal) },
+        films = films.await().map {
+            DigestFilm(it.title, it.year, it.rating, it.link, it.posterUrl, it.watchedDate)
+        },
+        games = games.await().map {
+            DigestGame(it.name, it.playtimeRecent ?: 0, it.playtimeTotal, steamIconUrl(it.appid, it.iconHash))
+        },
         repos = repos.await().map { g ->
-            DigestRepo(g.repo, g.repoUrl, g.commits.map { DigestCommit(it.shortSha, it.title, it.url) })
+            DigestRepo(g.repo, g.repoUrl, g.commits.map { DigestCommit(it.shortSha, it.title, it.url) }, g.latest)
         },
     )
 }

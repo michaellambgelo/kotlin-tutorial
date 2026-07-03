@@ -10,6 +10,7 @@ import dev.michaellamb.tutorial.notes.NotesDatabase
 import dev.michaellamb.tutorial.notes.noteRoutes
 import dev.michaellamb.tutorial.projects.ProjectRepository
 import dev.michaellamb.tutorial.projects.ProjectsDatabase
+import dev.michaellamb.tutorial.signage.signageRoutes
 import dev.michaellamb.tutorial.tour.collectionRoutes
 import dev.michaellamb.tutorial.tour.coroutineRoutes
 import dev.michaellamb.tutorial.tour.dataClassRoutes
@@ -50,6 +51,7 @@ fun Application.configureRouting() {
     routing {
         homeRoutes()
         healthRoutes()
+        signageRoutes(widgetClient)
 
         route("/tour") {
             dataClassRoutes()
