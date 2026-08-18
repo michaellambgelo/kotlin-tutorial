@@ -53,6 +53,12 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.61.0")
     implementation("org.xerial:sqlite-jdbc:3.50.1.0")
 
+    // QR codes for the /signage TV view — a note's link is unusable on a display nobody can tap,
+    // so it's rendered as a scannable code instead (signage/SignageQr.kt). zxing:core ONLY, not
+    // zxing:javase: SignageQr walks the BitMatrix into an inline <svg> by hand, so there's no AWT,
+    // no ImageIO, no temp files, and no second HTTP fetch from the TV.
+    implementation("com.google.zxing:core:3.5.3")
+
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-content-negotiation")
     testImplementation("io.ktor:ktor-client-mock")
