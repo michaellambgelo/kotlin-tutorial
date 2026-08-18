@@ -41,13 +41,16 @@ data class DigestFilm(
     val posterUrl: String?,
     val watchedDate: String?,
 )
-data class DigestGame(val name: String, val recentMinutes: Int, val totalMinutes: Int, val iconUrl: String?)
+data class DigestGame(
+    val name: String,
+    val recentMinutes: Int,
+    val totalMinutes: Int,
+    val iconUrl: String?,
+    val artUrl: String,
+    val storeUrl: String,
+)
 data class DigestRepo(val repo: String, val url: String, val commits: List<DigestCommit>, val latest: Instant)
 data class DigestCommit(val sha: String, val title: String, val url: String)
-
-/** Steam's fixed CDN convention for a game's small square icon; null if the API omitted a hash. */
-private fun steamIconUrl(appid: Int, iconHash: String?): String? =
-    iconHash?.let { "https://media.steampowered.com/steamcommunity/public/images/apps/$appid/$it.jpg" }
 
 fun Route.nowDigest(client: HttpClient, cache: WidgetCache) {
     get("/now.json") {
@@ -71,7 +74,14 @@ internal suspend fun buildDigest(client: HttpClient): NowDigest = coroutineScope
             DigestFilm(it.title, it.year, it.rating, it.link, it.posterUrl, it.watchedDate)
         },
         games = games.await().map {
-            DigestGame(it.name, it.playtimeRecent ?: 0, it.playtimeTotal, steamIconUrl(it.appid, it.iconHash))
+            DigestGame(
+                name = it.name,
+                recentMinutes = it.playtimeRecent ?: 0,
+                totalMinutes = it.playtimeTotal,
+                iconUrl = steamIconUrl(it.appid, it.iconHash),
+                artUrl = steamArtUrl(it.appid),
+                storeUrl = steamStoreUrl(it.appid),
+            )
         },
         repos = repos.await().map { g ->
             DigestRepo(g.repo, g.repoUrl, g.commits.map { DigestCommit(it.shortSha, it.title, it.url) }, g.latest)

@@ -56,7 +56,7 @@ Server-rendered HTML fragments consumed by the blog's `/now.html` and `/cluster.
 | Endpoint | Renders | Kotlin idea |
 |---|---|---|
 | `GET /widgets/letterboxd` | last 4 films from Letterboxd RSS | kotlinx.html, XML parsing, regex |
-| `GET /widgets/steam` | last 5 recently-played games | data-class Jackson DTOs |
+| `GET /widgets/steam` | last 5 recently-played games, with cover art linking to the Steam store | data-class Jackson DTOs |
 | `GET /widgets/cluster` | Uptime Kuma service status | structured concurrency (parallel `async`) |
 | `GET /widgets/github` | commits in last 24h, grouped by repo | `java.time` windows, `groupBy` |
 | `GET /widgets/recently-updated` | curated feed from the now-store Worker | object as HTTP service client |

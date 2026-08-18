@@ -137,11 +137,7 @@ private fun FlowContent.gamesSection(games: List<DigestGame>) {
     div("signage-games") {
         games.take(5).forEach { game ->
             div("game-row") {
-                if (game.iconUrl != null) {
-                    img(classes = "game-icon", src = game.iconUrl, alt = "${game.name} icon")
-                } else {
-                    div("game-icon game-icon--placeholder") { +"🎮" }
-                }
+                img(classes = "game-art", src = game.artUrl, alt = "${game.name} cover")
                 span("game-name") { +game.name }
                 span("game-time") { +formatPlaytime(game.recentMinutes) }
             }
@@ -344,8 +340,7 @@ a:hover { text-decoration: underline; }
   gap: 10px;
 }
 .game-row { display: flex; align-items: center; gap: 12px; }
-.game-icon { width: 36px; height: 36px; border-radius: 4px; object-fit: cover; flex: 0 0 auto; }
-.game-icon--placeholder { display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.05); }
+.game-art { width: 24px; height: 36px; border-radius: 4px; object-fit: cover; flex: 0 0 auto; background: rgba(255,255,255,0.05); }
 .game-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--heading); }
 .game-time { color: var(--text-dim); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
 
