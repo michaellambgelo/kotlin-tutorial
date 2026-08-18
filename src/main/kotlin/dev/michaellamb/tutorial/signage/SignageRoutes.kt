@@ -52,6 +52,7 @@ import kotlinx.html.title
 import kotlinx.html.unsafe
 import java.time.Duration
 import java.time.Instant
+import kotlin.math.ceil
 
 private const val REFRESH_SECONDS = 300
 
@@ -182,21 +183,53 @@ private fun FlowContent.gamesSection(games: List<DigestGame>) {
 internal fun tickerItems(repos: List<DigestRepo>): List<Pair<String, String>> =
     repos.flatMap { repo -> repo.commits.map { repo.repo to it.title } }
 
+/**
+ * How many times each half of the track has to repeat the item list.
+ *
+ * The loop only looks continuous while the visible strip is fully covered at every offset, which
+ * needs one half to be at least as wide as the page — otherwise the track runs out mid-scroll and
+ * a blank gap slides through. Two commits only span ~1700px against a 2560px-wide page at 1080p,
+ * so without this the strip visibly empties out.
+ *
+ * The width is estimated rather than measured: the ticker is monospace at a known size, so
+ * character count is a good proxy, and over-estimating only costs a few more text spans.
+ */
+internal fun tickerRepeats(items: List<Pair<String, String>>): Int {
+    val halfWidth = items.sumOf { (repo, title) ->
+        (repo.length + title.length) * TICKER_CHAR_PX + TICKER_ITEM_GAP_PX
+    }
+    if (halfWidth <= 0.0) return 1
+    return ceil(SIGNAGE_PAGE_WIDTH_PX / halfWidth).toInt().coerceAtLeast(1)
+}
+
+/** 133.333vw at 4K — the widest screen this is likely to be cast to. */
+private const val SIGNAGE_PAGE_WIDTH_PX = 5120.0
+
+/** Advance width of the 14px monospace ticker text, ~0.6em per character. */
+private const val TICKER_CHAR_PX = 8.4
+
+/** Per item: the 10px repo/title gap plus the 44px trailing gap. */
+private const val TICKER_ITEM_GAP_PX = 54.0
+
 private fun FlowContent.commitTicker(repos: List<DigestRepo>) {
     val items = tickerItems(repos)
     if (items.isEmpty()) return
-    // Scale the scroll to the amount of text so a long list doesn't crawl and a short one doesn't race.
-    val seconds = (items.size * 9).coerceIn(30, 120)
+    val repeats = tickerRepeats(items)
+    // Scale the scroll to the text actually in one half so a long list doesn't crawl and a short
+    // one doesn't race — the half is what travels past the screen in one animation cycle.
+    val seconds = (items.size * repeats * 9).coerceIn(30, 180)
     div("signage-ticker") {
         div("ticker-track") {
             attributes["style"] = "animation-duration: ${seconds}s"
             repeat(2) { copy ->
                 div("ticker-half") {
                     if (copy == 1) attributes["aria-hidden"] = "true"
-                    items.forEach { (repo, commitTitle) ->
-                        span("ticker-item") {
-                            span("ticker-repo") { +repo }
-                            span("ticker-title") { +commitTitle }
+                    repeat(repeats) {
+                        items.forEach { (repo, commitTitle) ->
+                            span("ticker-item") {
+                                span("ticker-repo") { +repo }
+                                span("ticker-title") { +commitTitle }
+                            }
                         }
                     }
                 }

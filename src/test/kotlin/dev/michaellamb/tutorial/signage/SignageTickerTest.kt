@@ -31,6 +31,33 @@ class SignageTickerTest {
     }
 
     @Test
+    fun `a short list repeats enough times to cover the page width`() {
+        // Two real commit lines span ~1700px; the page is 2560px at 1080p and 5120px at 4K, so a
+        // single pass would leave a blank gap sliding through the strip.
+        val items = tickerItems(
+            listOf(
+                repo(
+                    "michaellambgelo/kotlin-tutorial",
+                    "feat(signage): bigger game art, QR codes for note links, commit ticker",
+                    "feat(now): show Steam cover art in the /now games widget",
+                ),
+            ),
+        )
+        assertTrue(tickerRepeats(items) > 1, "two commits must repeat to fill the strip")
+    }
+
+    @Test
+    fun `a list already wider than the page is not repeated further`() {
+        val items = List(40) { "michaellambgelo/kotlin-tutorial" to "a reasonably long commit subject line $it" }
+        assertEquals(1, tickerRepeats(items))
+    }
+
+    @Test
+    fun `repeat count never drops below one`() {
+        assertEquals(1, tickerRepeats(emptyList()))
+    }
+
+    @Test
     fun `commits are flattened to repo and title pairs across groups`() {
         val items = tickerItems(
             listOf(
