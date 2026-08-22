@@ -21,10 +21,16 @@ repositories {
 }
 
 dependencies {
+    // Ktor 3.5.0's BOM lands Netty on 4.2.13.Final, which carries 19 advisories across
+    // netty-codec-http (9), netty-codec-http2 (5), netty-handler (3), netty-codec-compression,
+    // and the epoll/kqueue native transports. 4.2.17.Final is the first release clear of all of
+    // them (CVE-2026-59903 alone needs 4.2.17). Drop this pin once Ktor's BOM catches up.
+    implementation(platform("io.netty:netty-bom:4.2.17.Final"))
+
     implementation("io.ktor:ktor-server-netty")
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-serialization-jackson")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.1")
     implementation("io.ktor:ktor-server-call-logging")
     implementation("io.ktor:ktor-server-status-pages")
     implementation("io.ktor:ktor-server-config-yaml")
@@ -40,7 +46,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core")
     implementation("io.ktor:ktor-client-cio")
     implementation("io.ktor:ktor-client-content-negotiation")
-    implementation("ch.qos.logback:logback-classic:1.5.12")
+    implementation("ch.qos.logback:logback-classic:1.5.38")
     implementation(kotlin("reflect")) // runtime reflection for /tour/reflection
 
     // Persistence for /notes — Exposed DSL over SQLite-on-disk (see notes/NotesDatabase.kt). DSL,
@@ -51,13 +57,20 @@ dependencies {
     // native lib for the arm64-only Pi image (node5) plus Mac/aarch64 for local + node0 builds.
     implementation("org.jetbrains.exposed:exposed-core:0.61.0")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.61.0")
-    implementation("org.xerial:sqlite-jdbc:3.50.1.0")
+    implementation("org.xerial:sqlite-jdbc:3.53.2.1")
 
     // QR codes for the /signage TV view — a note's link is unusable on a display nobody can tap,
     // so it's rendered as a scannable code instead (signage/SignageQr.kt). zxing:core ONLY, not
     // zxing:javase: SignageQr walks the BitMatrix into an inline <svg> by hand, so there's no AWT,
     // no ImageIO, no temp files, and no second HTTP fetch from the TV.
-    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:core:3.5.4")
+
+    // Test-scope only (never shipped): ktor-server-test-host drags in ktor-client-apache5, whose
+    // transitive Apache HttpComponents 5.5.1/5.3.6 carry CVE-2026-64607 / CVE-2026-54399 /
+    // CVE-2026-54428. This single pin is enough — httpclient5 5.6.4 pulls httpcore5 and
+    // httpcore5-h2 5.4.3 with it, so pinning those two separately was verified redundant.
+    // Stays inside the 5.x line; drop once Ktor's BOM catches up.
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.4")
 
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-content-negotiation")
