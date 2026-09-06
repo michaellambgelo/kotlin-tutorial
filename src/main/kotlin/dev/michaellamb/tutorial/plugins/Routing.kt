@@ -11,19 +11,33 @@ import dev.michaellamb.tutorial.notes.noteRoutes
 import dev.michaellamb.tutorial.projects.ProjectRepository
 import dev.michaellamb.tutorial.projects.ProjectsDatabase
 import dev.michaellamb.tutorial.signage.signageRoutes
+import dev.michaellamb.tutorial.tour.basicTypeRoutes
 import dev.michaellamb.tutorial.tour.collectionRoutes
+import dev.michaellamb.tutorial.tour.collectionTypeRoutes
+import dev.michaellamb.tutorial.tour.controlFlowRoutes
 import dev.michaellamb.tutorial.tour.coroutineRoutes
 import dev.michaellamb.tutorial.tour.dataClassRoutes
+import dev.michaellamb.tutorial.tour.delegationRoutes
+import dev.michaellamb.tutorial.tour.enumRoutes
 import dev.michaellamb.tutorial.tour.extensionRoutes
+import dev.michaellamb.tutorial.tour.functionRoutes
 import dev.michaellamb.tutorial.tour.genericsRoutes
 import dev.michaellamb.tutorial.tour.higherOrderFunctionRoutes
 import dev.michaellamb.tutorial.tour.interfaceRoutes
+import dev.michaellamb.tutorial.tour.lambdaReceiverRoutes
 import dev.michaellamb.tutorial.tour.nullSafetyRoutes
+import dev.michaellamb.tutorial.tour.objectRoutes
+import dev.michaellamb.tutorial.tour.openClassRoutes
+import dev.michaellamb.tutorial.tour.optInRoutes
+import dev.michaellamb.tutorial.tour.propertyRoutes
 import dev.michaellamb.tutorial.tour.reflectionRoutes
 import dev.michaellamb.tutorial.tour.resultRoutes
 import dev.michaellamb.tutorial.tour.scopeFunctionRoutes
 import dev.michaellamb.tutorial.tour.sealedWhenRoutes
 import dev.michaellamb.tutorial.tour.sequenceRoutes
+import dev.michaellamb.tutorial.tour.smartCastRoutes
+import dev.michaellamb.tutorial.tour.valueClassRoutes
+import dev.michaellamb.tutorial.tour.variableRoutes
 import dev.michaellamb.tutorial.widgets.WidgetCache
 import dev.michaellamb.tutorial.widgets.clusterWidget
 import dev.michaellamb.tutorial.widgets.githubWidget
@@ -53,19 +67,41 @@ fun Application.configureRouting() {
         healthRoutes()
         signageRoutes(widgetClient)
 
+        // Ordered to follow the official Kotlin tour (kotlinlang.org/docs/kotlin-tour-welcome.html):
+        // the beginner chapters first, then the intermediate ones, then the extras this service
+        // adds on top (coroutines, sequences, Result, generics, reflection).
         route("/tour") {
+            // Beginner tour
+            variableRoutes()
+            basicTypeRoutes()
+            collectionTypeRoutes()
+            controlFlowRoutes()
+            functionRoutes()
             dataClassRoutes()
             nullSafetyRoutes()
-            sealedWhenRoutes()
-            coroutineRoutes()
+
+            // Intermediate tour
             extensionRoutes()
             scopeFunctionRoutes()
-            collectionRoutes()
-            genericsRoutes()
-            higherOrderFunctionRoutes()
+            lambdaReceiverRoutes()
             interfaceRoutes()
+            delegationRoutes()
+            objectRoutes()
+            openClassRoutes()
+            sealedWhenRoutes()
+            enumRoutes()
+            valueClassRoutes()
+            propertyRoutes()
+            smartCastRoutes()
+            optInRoutes()
+
+            // Beyond the tour
+            collectionRoutes()
+            higherOrderFunctionRoutes()
             sequenceRoutes()
+            coroutineRoutes()
             resultRoutes()
+            genericsRoutes()
             reflectionRoutes()
         }
 

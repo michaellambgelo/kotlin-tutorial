@@ -3,6 +3,9 @@ name: Build and push image
 on:
   push:
     branches: [main]
+  # Tests gate every pull request too. `push` is filtered to main, so a branch with
+  # an open PR fires this once (as pull_request), not twice.
+  pull_request:
   workflow_dispatch:
 
 env:
@@ -24,8 +27,9 @@ jobs:
 
   # Image builds moved to node0 (Mac mini, native arm64 — see cluster-ops
   # scripts/node0-build-deploy.sh, driven by scripts/deploy.sh / `/deploy`).
-  # Tests still run on every push; this job is manual-dispatch fallback only
-  # (full multi-arch via QEMU) — e.g. if an amd64 image is ever needed.
+  # Tests still run on every push to main and on every pull request; this job is a
+  # manual-dispatch fallback only (full multi-arch via QEMU) — e.g. if an amd64
+  # image is ever needed.
   build-and-push:
     needs: test
     if: github.event_name == 'workflow_dispatch'
