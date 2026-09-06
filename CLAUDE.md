@@ -41,7 +41,7 @@ Playbook: `~/Workspace/cluster-ops/playbooks/update-kotlin-tutorial.yml`.
 
 Run **`/deploy`** from this repo (wraps `scripts/deploy.sh`): pushes `main`, then SSHes node0 to run `cluster-ops/scripts/node0-build-deploy.sh kotlin-tutorial` — native arm64 build → push GHCR (`:latest` + `:sha-<short>`) → the playbook pulls on node5, tags the previous image `:rollback`, restarts, and health-gates.
 
-GitHub Actions (`.github/workflows/build-and-push.yml`) still runs **tests on push**, but its image-build job is **`workflow_dispatch`-only** — a manual multi-arch (QEMU) fallback, e.g. if an amd64 image is ever needed.
+GitHub Actions (`.github/workflows/build-and-push.yml`) runs **tests on every push to `main` and on every pull request**, but its image-build job is **`workflow_dispatch`-only** — a manual multi-arch (QEMU) fallback, e.g. if an amd64 image is ever needed.
 
 ## Conventions
 
