@@ -32,13 +32,36 @@ class HomeRoutesTest {
         application { module() }
         val body = client.get("/").bodyAsText()
         listOf(
+            // Beginner tour
+            "/tour/variables",
+            "/tour/basic-types",
+            "/tour/collection-types",
+            "/tour/control-flow",
+            "/tour/functions",
             "/tour/data-class",
             "/tour/null-safety",
-            "/tour/sealed-when",
-            "/tour/coroutines",
+            // Intermediate tour
             "/tour/extensions",
             "/tour/scope-functions",
+            "/tour/lambdas-with-receiver",
+            "/tour/interfaces",
+            "/tour/delegation",
+            "/tour/objects",
+            "/tour/open-classes",
+            "/tour/sealed-when",
+            "/tour/enums",
+            "/tour/value-classes",
+            "/tour/properties",
+            "/tour/smart-casts",
+            "/tour/opt-in",
+            // Beyond the tour
             "/tour/collections",
+            "/tour/higher-order-functions",
+            "/tour/sequences",
+            "/tour/coroutines",
+            "/tour/result",
+            "/tour/generics",
+            "/tour/reflection",
             "/widgets/letterboxd",
             "/widgets/steam",
             "/widgets/cluster",

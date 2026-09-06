@@ -59,7 +59,76 @@ private data class EndpointCard(
     val requestBody: String? = null,
 )
 
+// Ordered to follow the official Kotlin tour (kotlinlang.org/docs/kotlin-tour-welcome.html):
+// the beginner chapters, then the intermediate ones, then what this service adds on top.
 private val tourEndpoints: List<EndpointCard> = listOf(
+    // ---- Beginner tour ----
+    EndpointCard(
+        method = "GET",
+        path = "/tour/variables?name=Kodee",
+        summary = "val vs var, type inference, string templates.",
+        snippet = """
+            val name = "Kodee"        // read-only, type inferred
+            var counter = 0           // reassignable
+            val declared: Long = 42   // explicit — no implicit widening
+
+            "Hello, ${'$'}name!"                              // template
+            "${'$'}name has ${'$'}{name.length} characters"       // expression
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/basic-types",
+        summary = "Int / Long / Double / Boolean / Char / String and explicit conversion.",
+        snippet = """
+            val whole = 100          // Int
+            val big = 100L           // Long
+            val letter = 'K'         // Char, not a String
+
+            whole.toLong() + big     // conversions are always explicit
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/collection-types",
+        summary = "List / Set / Map, read-only by default and their mutable siblings.",
+        snippet = """
+            val readOnly = listOf("green", "red")     // no add() at all
+            val mutable = mutableListOf("green").apply { add("yellow") }
+
+            setOf("a", "b", "a").size                 // 2 — duplicates collapse
+            mapOf("kiwi" to 190)["durian"]            // null, doesn't throw
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/control-flow?n=7",
+        summary = "if/when as expressions, ranges, for and while loops.",
+        snippet = """
+            val parity = if (n % 2 == 0) "even" else "odd"   // no ternary needed
+
+            val size = when (n) {
+              0 -> "nothing"
+              in 2..9 -> "a handful"
+              else -> "a lot"
+            }
+
+            for (i in 5 downTo 1 step 2) { /* 5, 3, 1 */ }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/functions?name=Han%20Solo",
+        summary = "Default parameters, named arguments, single-expression bodies, early returns.",
+        snippet = """
+            fun greet(name: String, greeting: String = "Hello") = "${'$'}greeting, ${'$'}name"
+
+            greet(name, excited = true)          // skip the middle parameter
+            greet(greeting = "Howdy", name = n)  // any order, once named
+
+            fun square(n: Int) = n * n           // single expression, inferred type
+        """.trimIndent(),
+    ),
     EndpointCard(
         method = "GET",
         path = "/tour/data-class",
@@ -84,37 +153,8 @@ private val tourEndpoints: List<EndpointCard> = listOf(
         """.trimIndent(),
         requestBody = """{ "nickname": "luke" }""",
     ),
-    EndpointCard(
-        method = "POST",
-        path = "/tour/sealed-when",
-        summary = "sealed interface + exhaustive when — no else needed.",
-        snippet = """
-            sealed interface Shape {
-              data class Circle(val radius: Double) : Shape
-              data class Square(val side: Double) : Shape
-            }
 
-            fun Shape.area(): Double = when (this) {
-              is Shape.Circle -> PI * radius * radius
-              is Shape.Square -> side * side
-            }
-        """.trimIndent(),
-        requestBody = """{ "type": "Circle", "radius": 5 }""",
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/coroutines",
-        summary = "Structured concurrency — coroutineScope + async parallelism.",
-        snippet = """
-            val parallelMs = measureTimeMillis {
-              coroutineScope {
-                val a = async { fakeApiCall("a", 200) }
-                val b = async { fakeApiCall("b", 200) }
-                listOf(a.await(), b.await())
-              }
-            }
-        """.trimIndent(),
-    ),
+    // ---- Intermediate tour ----
     EndpointCard(
         method = "GET",
         path = "/tour/extensions?text=Hello%20World&n=17",
@@ -142,38 +182,15 @@ private val tourEndpoints: List<EndpointCard> = listOf(
     ),
     EndpointCard(
         method = "GET",
-        path = "/tour/collections",
-        summary = "Collection operations — groupBy, sumOf, partition, runningFold.",
+        path = "/tour/lambdas-with-receiver",
+        summary = "Lambdas with receiver — the shape behind every Kotlin builder DSL.",
         snippet = """
-            val byAuthor = library.groupBy { it.author }
-            val totalPages = library.sumOf { it.pages }
-            val (long, short) = library.partition { it.pages > 500 }
-            library.runningFold(0) { acc, b -> acc + b.pages }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/generics",
-        summary = "Generics — bounded type params, out variance, reified types.",
-        snippet = """
-            fun <T : Comparable<T>> maxOf(items: List<T>): T? = items.maxOrNull()
+            fun menu(name: String, init: Menu.() -> Unit) = Menu(name).apply(init)
 
-            class Box<out T>(val value: T)               // covariant producer
-
-            inline fun <reified T> List<*>.ofType() = filterIsInstance<T>()
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/higher-order-functions?x=10",
-        summary = "Higher-order functions — functions as values, refs, composition.",
-        snippet = """
-            val double: (Int) -> Int = { it * 2 }
-
-            infix fun <A, B, C> ((A) -> B).then(g: (B) -> C): (A) -> C =
-              { a -> g(this(a)) }
-
-            listOf("luke", "leia").map(String::uppercase)  // function reference
+            menu("Breakfast") {
+              item("Coffee", 350)      // `this` is the Menu — no qualifier
+              item("Pancakes", 900)
+            }
         """.trimIndent(),
     ),
     EndpointCard(
@@ -194,6 +211,163 @@ private val tourEndpoints: List<EndpointCard> = listOf(
     ),
     EndpointCard(
         method = "GET",
+        path = "/tour/delegation",
+        summary = "Interface delegation — `by` writes the forwarding boilerplate for you.",
+        snippet = """
+            class RedPen(private val base: DrawingTool = PenTool()) :
+              DrawingTool by base {
+                override val color = "red"
+                override fun draw(shape: String) = "drawing ${'$'}shape in ${'$'}color"
+              }
+            // erase() and info() are forwarded to `base`, never written here
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/objects",
+        summary = "object declarations — singletons, data objects, companion objects.",
+        snippet = """
+            object Registry { fun register(name: String): Int { /* ... */ } }
+
+            data object AppConfig { const val VERSION = "1.0.0" }
+
+            class Temperature private constructor(val celsius: Double) {
+              companion object { fun fromFahrenheit(f: Double) = /* ... */ }
+            }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/open-classes",
+        summary = "Classes are final by default — open, abstract, override, super.",
+        snippet = """
+            abstract class Vehicle(val name: String, val wheels: Int) {
+              abstract fun sound(): String
+              open fun describe() = "${'$'}name goes ${'$'}{sound()}"
+            }
+
+            class RaceCar(name: String) : Car(name) {
+              override fun describe() = super.describe() + " (at speed)"
+            }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "POST",
+        path = "/tour/sealed-when",
+        summary = "sealed interface + exhaustive when — no else needed.",
+        snippet = """
+            sealed interface Shape {
+              data class Circle(val radius: Double) : Shape
+              data class Square(val side: Double) : Shape
+            }
+
+            fun Shape.area(): Double = when (this) {
+              is Shape.Circle -> PI * radius * radius
+              is Shape.Square -> side * side
+            }
+        """.trimIndent(),
+        requestBody = """{ "type": "Circle", "radius": 5 }""",
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/enums?planet=jupiter",
+        summary = "enum class — per-constant state, overrides, entries, exhaustive when.",
+        snippet = """
+            enum class Planet(val radiusKm: Double, val gravity: Double) {
+              EARTH(6371.0, 9.81),
+              JUPITER(69911.0, 24.79) {
+                override fun blurb() = "big and stormy"
+              };
+              open fun blurb() = "radius ${'$'}{radiusKm}km"
+            }
+
+            Planet.entries.find { it.name == requested }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/value-classes",
+        summary = "@JvmInline value class — distinct types, no wrapper allocation.",
+        snippet = """
+            @JvmInline
+            value class UserId(val raw: String) {
+              init { require(raw.isNotBlank()) }
+            }
+
+            fun invite(id: UserId, email: EmailAddress)
+            // invite(email, id) does not compile — both are Strings only at runtime
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/properties",
+        summary = "Backing fields, extension properties, by lazy, Delegates.observable.",
+        snippet = """
+            var name: String = ""
+              set(value) { field = value.trim() }   // `field`, not `name` — no recursion
+
+            val String.lastChar: Char get() = this[length - 1]
+
+            val token: String by lazy { expensive() }              // computed once
+            var logLevel by Delegates.observable("INFO") { p, o, n -> log(o, n) }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/smart-casts?value=luke",
+        summary = "Smart casts, as? safe casts, and null-aware collection operators.",
+        snippet = """
+            when (input) {
+              is Int -> input * 2                 // smart cast, no explicit cast
+              is String -> input.uppercase()
+            }
+
+            (anything as? String)?.uppercase() ?: "not a String"
+            listOf("a", null, "b").filterNotNull()
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/opt-in?text=kotlin",
+        summary = "@RequiresOptIn / @OptIn, plus kotlin.time Durations.",
+        snippet = """
+            @RequiresOptIn(level = RequiresOptIn.Level.ERROR)
+            annotation class ExperimentalTutorialApi
+
+            @OptIn(ExperimentalTutorialApi::class, ExperimentalUnsignedTypes::class)
+            fun demo() = uintArrayOf(1u, 2u, 3u)
+
+            (90.minutes + 500.milliseconds).toIsoString()   // PT1H30M0.500S
+        """.trimIndent(),
+    ),
+
+    // ---- Beyond the tour ----
+    EndpointCard(
+        method = "GET",
+        path = "/tour/collections",
+        summary = "Collection operations — groupBy, sumOf, partition, runningFold.",
+        snippet = """
+            val byAuthor = library.groupBy { it.author }
+            val totalPages = library.sumOf { it.pages }
+            val (long, short) = library.partition { it.pages > 500 }
+            library.runningFold(0) { acc, b -> acc + b.pages }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/higher-order-functions?x=10",
+        summary = "Higher-order functions — functions as values, refs, composition.",
+        snippet = """
+            val double: (Int) -> Int = { it * 2 }
+
+            infix fun <A, B, C> ((A) -> B).then(g: (B) -> C): (A) -> C =
+              { a -> g(this(a)) }
+
+            listOf("luke", "leia").map(String::uppercase)  // function reference
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
         path = "/tour/sequences",
         summary = "Sequences — lazy evaluation, short-circuit, generateSequence.",
         snippet = """
@@ -203,6 +377,20 @@ private val tourEndpoints: List<EndpointCard> = listOf(
 
             generateSequence(0 to 1) { (a, b) -> b to (a + b) }
               .map { it.first }.take(10).toList()
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/coroutines",
+        summary = "Structured concurrency — coroutineScope + async parallelism.",
+        snippet = """
+            val parallelMs = measureTimeMillis {
+              coroutineScope {
+                val a = async { fakeApiCall("a", 200) }
+                val b = async { fakeApiCall("b", 200) }
+                listOf(a.await(), b.await())
+              }
+            }
         """.trimIndent(),
     ),
     EndpointCard(
@@ -217,6 +405,18 @@ private val tourEndpoints: List<EndpointCard> = listOf(
               .fold({ "ok: ${'$'}it" }, { "error: ${'$'}{it.message}" })
 
             runCatching { checkedSqrt(-1) }.getOrElse { Double.NaN }
+        """.trimIndent(),
+    ),
+    EndpointCard(
+        method = "GET",
+        path = "/tour/generics",
+        summary = "Generics — bounded type params, out variance, reified types.",
+        snippet = """
+            fun <T : Comparable<T>> maxOf(items: List<T>): T? = items.maxOrNull()
+
+            class Box<out T>(val value: T)               // covariant producer
+
+            inline fun <reified T> List<*>.ofType() = filterIsInstance<T>()
         """.trimIndent(),
     ),
     EndpointCard(

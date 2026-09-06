@@ -23,19 +23,39 @@ Deployed to `node5` of the homelab Pi cluster, reachable at `https://kotlin-tuto
 
 | Endpoint | Kotlin idea |
 |---|---|
+| **Beginner tour** | |
+| `GET /tour/variables` | `val` vs `var`, type inference, string templates. Query: `?name=Kodee` |
+| `GET /tour/basic-types` | `Int`/`Long`/`Double`/`Boolean`/`Char`/`String`, explicit conversion |
+| `GET /tour/collection-types` | `List` / `Set` / `Map`, read-only vs `mutable*` |
+| `GET /tour/control-flow` | `if`/`when` as expressions, ranges, `for`, `while`. Query: `?n=7` |
+| `GET /tour/functions` | default parameters, named arguments, single-expression bodies, early returns. Query: `?name=Han%20Solo` |
 | `GET /tour/data-class` | `data class`, `copy()`, `componentN()`, destructuring |
 | `POST /tour/null-safety` | `?.`, `?:`, `let`, smart casts. Body `{"nickname": String?}` |
-| `POST /tour/sealed-when` | `sealed interface` + exhaustive `when`. Body `{"type":"Circle","radius":3}` (or `Square`/`Triangle`) |
-| `GET /tour/coroutines` | `suspend` + `coroutineScope { async { ... } }` parallel-vs-sequential timing |
+| **Intermediate tour** | |
 | `GET /tour/extensions` | extension functions. Query: `?text=Hello&n=17` |
 | `GET /tour/scope-functions` | `let` / `run` / `with` / `apply` / `also` side-by-side |
-| `GET /tour/collections` | `groupBy` / `sumOf` / `partition` / `runningFold` |
-| `GET /tour/generics` | bounded type params `<T : Comparable<T>>`, `out` variance, `reified` |
-| `GET /tour/higher-order-functions` | functions as values, `::` refs, composition. Query: `?x=10` |
+| `GET /tour/lambdas-with-receiver` | function literals with receiver (`Menu.() -> Unit`) — the builder-DSL shape |
 | `GET /tour/interfaces` | interface default methods + polymorphic dispatch |
+| `GET /tour/delegation` | interface delegation with `by` |
+| `GET /tour/objects` | `object` singletons, `data object`, `companion object`, object expressions |
+| `GET /tour/open-classes` | `open` / `abstract` / `override` / `super` |
+| `POST /tour/sealed-when` | `sealed interface` + exhaustive `when`. Body `{"type":"Circle","radius":3}` (or `Square`/`Triangle`) |
+| `GET /tour/enums` | `enum class` with per-constant state and overrides, `entries`. Query: `?planet=jupiter` |
+| `GET /tour/value-classes` | `@JvmInline value class` — distinct types, no wrapper allocation |
+| `GET /tour/properties` | backing fields, extension properties, `by lazy`, `Delegates.observable` |
+| `GET /tour/smart-casts` | `is` / `!is`, `as?`, `filterNotNull`, Elvis early returns. Query: `?value=luke` |
+| `GET /tour/opt-in` | `@RequiresOptIn` / `@OptIn`, `kotlin.time` `Duration`. Query: `?text=kotlin` |
+| **Beyond the tour** | |
+| `GET /tour/collections` | `groupBy` / `sumOf` / `partition` / `runningFold` |
+| `GET /tour/higher-order-functions` | functions as values, `::` refs, composition. Query: `?x=10` |
 | `GET /tour/sequences` | lazy vs eager evaluation, short-circuit, `generateSequence` |
+| `GET /tour/coroutines` | `suspend` + `coroutineScope { async { ... } }` parallel-vs-sequential timing |
 | `GET /tour/result` | `runCatching` / `Result` / `fold` / `getOrElse`. Query: `?n=16` |
+| `GET /tour/generics` | bounded type params `<T : Comparable<T>>`, `out` variance, `reified` |
 | `GET /tour/reflection` | `KClass`, `memberProperties`, callable references |
+
+The beginner and intermediate sections track the chapters of the official
+[Kotlin tour](https://kotlinlang.org/docs/kotlin-tour-welcome.html); the rest are extras this service adds on top.
 
 ### CRUD (`/notes`)
 
