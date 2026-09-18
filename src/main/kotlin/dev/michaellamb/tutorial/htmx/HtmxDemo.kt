@@ -111,12 +111,7 @@ private fun renderHtmxPage(): String {
                         attributes.hx {
                             get = "/htmx/chapter/$chapter"
                             target = "#panel"
-                            // NOT HxSwap.innerHtml. That constant is "innerHtml", which htmx does
-                            // not recognise — verified in-browser: it behaves identically to a
-                            // garbage value, because htmx's fallback *is* innerHTML, so the bug is
-                            // invisible unless you compare against a swap that should differ.
-                            // HxSwap.outerHtml is correctly "outerHTML", so this is a typo in that
-                            // one constant (Ktor 3.5.0). Worth an upstream issue.
+                            // NOT HxSwap.innerHtml — see the note at the bottom of this file.
                             swap = "innerHTML"
                             indicator = "#spinner"
                         }
@@ -175,3 +170,31 @@ ul { margin:0; padding-left:18px; }
 .spinner { color:#7a7f87; font-size:12px; height:16px; visibility:hidden; }
 .spinner.htmx-request { visibility:visible; }
 """.trimIndent()
+
+/*
+ * Upstream bug: HxSwap.innerHtml is wrong, and it fails silently.
+ *
+ * `io.ktor.htmx.HxSwap.innerHtml` is the string "innerHtml". htmx's documented value is "innerHTML".
+ * It is the only one of the nine constants that does not match htmx's own set — note that
+ * `outerHtml` is correctly "outerHTML", so the Kotlin property is camelCase while the *string*
+ * preserves htmx's casing. In `innerHtml` the property name leaked into the value.
+ *
+ * Why it looks fine: htmx falls back to innerHTML for any swap style it does not recognise, which
+ * is exactly what the constant was meant to request. It produces the right result for the wrong
+ * reason.
+ *
+ * Proving it needs care. Comparing "innerHtml" against a garbage value proves nothing — "recognised
+ * as innerHTML" and "unrecognised, falls back to innerHTML" predict the same outcome. The test that
+ * distinguishes them uses a swap whose behaviour differs from the fallback:
+ *
+ *   hx-swap="outerHTML"  -> the target element is REPLACED (it no longer exists afterwards)
+ *   hx-swap="outerHtml"  -> the target element SURVIVES, contents replaced
+ *
+ * Measured in-browser against htmx 2.0.4 on 2026-09-18: the second case fell back to innerHTML, so
+ * htmx matches swap styles case-sensitively and "innerHtml" is genuinely unrecognised.
+ *
+ * Present in Ktor 3.5.0 (what this service runs) and still on Ktor's main branch after 3.6.0.
+ * Harmless today because the fallback coincides with the intent; it breaks if htmx ever changes its
+ * default, and the rendered attribute is misleading to anyone reading the HTML. Worth a YouTrack
+ * issue. Use the literal "innerHTML" until it is fixed; the other HxSwap constants are correct.
+ */
