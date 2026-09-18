@@ -1,5 +1,9 @@
 package dev.michaellamb.tutorial.plugins
 
+import dev.michaellamb.tutorial.catalog.endpointSummaries
+import dev.michaellamb.tutorial.catalog.operationIdFor
+import dev.michaellamb.tutorial.catalog.tagFor
+import dev.michaellamb.tutorial.catalog.tagOrder
 import io.ktor.openapi.OpenApiDoc
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -27,7 +31,11 @@ private val specJson = Json {
  * A serializeModel function for OpenApiDocSource.Routing that post-processes the generated spec:
  *  1. strips resolver-error descriptions (see above), and
  *  2. completes polymorphic schemas so Swagger's "Try it out" produces a valid body
- *     (see [completeDiscriminatorSubtypes] / [withSealedWhenExample]).
+ *     (see [completeDiscriminatorSubtypes] / [withSealedWhenExample]), and
+ *  3. fills in the operationId, tag and summary the generator leaves empty
+ *     (see [withOperationMetadata]), and
+ *  4. documents the errors StatusPages produces outside the routing tree
+ *     (see [withErrorResponses]).
  */
 fun cleanedOpenApiSerializer(): (OpenApiDoc) -> String = { doc ->
     val tree = specJson.encodeToJsonElement(OpenApiDoc.serializer(), doc)
@@ -35,6 +43,8 @@ fun cleanedOpenApiSerializer(): (OpenApiDoc) -> String = { doc ->
         .stripResolverErrors()
         .completeDiscriminatorSubtypes()
         .withSealedWhenExample()
+        .withOperationMetadata()
+        .withErrorResponses()
     specJson.encodeToString(JsonElement.serializer(), processed)
 }
 
@@ -146,4 +156,154 @@ private fun JsonElement.withSealedWhenExample(): JsonElement {
 private fun JsonObject.replacing(key: String, value: JsonElement): JsonObject = buildJsonObject {
     for ((k, v) in this@replacing) put(k, v)
     put(key, value)
+}
+
+// The OpenAPI compiler plugin only emits `operationId` and `tag` for a route that carries an
+// explicit KDoc annotation, and it leaves `summary` as "". Annotating 40-odd routes would put
+// OpenAPI boilerplate above every teaching handler — the same objection that motivated
+// stripResolverErrors above — so we fill all three in here instead, from the one catalog the home
+// page already renders (catalog/EndpointCatalog.kt).
+//
+// Without this every operation lands in swagger-ui's synthetic "default" bucket: one flat list of
+// 50 bare paths with no prose and no stable anchor to link at.
+private val HTTP_METHODS = setOf("get", "put", "post", "delete", "options", "head", "patch", "trace")
+
+private fun JsonElement.withOperationMetadata(): JsonElement {
+    val root = this as? JsonObject ?: return this
+    val paths = root["paths"] as? JsonObject ?: return this
+
+    val patchedPaths = buildJsonObject {
+        for ((path, pathItem) in paths) {
+            if (pathItem !is JsonObject) {
+                put(path, pathItem)
+                continue
+            }
+            put(
+                path,
+                buildJsonObject {
+                    for ((key, operation) in pathItem) {
+                        // A path item also holds non-operation keys (`parameters`, `summary`, `$ref`).
+                        if (key.lowercase() !in HTTP_METHODS || operation !is JsonObject) {
+                            put(key, operation)
+                        } else {
+                            put(key, operation.withMetadataFor(key, path))
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    // Swagger UI orders its sections by the document-level `tags` array, so declaring it here makes
+    // the docs page mirror the home page's section order instead of sorting by first appearance.
+    val tags = buildJsonArray {
+        for ((name, description) in tagOrder) {
+            add(
+                buildJsonObject {
+                    put("name", JsonPrimitive(name))
+                    put("description", JsonPrimitive(description))
+                },
+            )
+        }
+    }
+
+    return root.replacing("paths", patchedPaths).replacing("tags", tags)
+}
+
+private fun JsonObject.withMetadataFor(method: String, path: String): JsonObject {
+    var result = replacing("operationId", JsonPrimitive(operationIdFor(method, path)))
+        .replacing(
+            "tags",
+            buildJsonArray { add(JsonPrimitive(tagFor(path))) },
+        )
+
+    // Only fill a summary that isn't already there — a real @summary annotation should win.
+    val existing = (this["summary"] as? JsonPrimitive)?.content
+    if (existing.isNullOrBlank()) {
+        endpointSummaries[method.uppercase() to path]?.let {
+            result = result.replacing("summary", JsonPrimitive(it))
+        }
+    }
+    return result
+}
+
+// plugins/StatusPages.kt answers with an ErrorResponse for any failure, but it does so *outside* the
+// routing tree — so the compiler plugin, which infers responses from the call.respond in each
+// handler, cannot see it. Since the refactor that moved /notes onto thrown ApiExceptions, those
+// handlers no longer respond 400/404 themselves either.
+//
+// OpenAPI's `default` response means exactly "any status not listed above", which is the honest
+// description of a global error handler, so every operation gets one. The ErrorResponse schema has
+// to be injected too: nothing in the routing tree returns the type, so the generator never emits it.
+private const val ERROR_SCHEMA = "ErrorResponse"
+
+private fun JsonElement.withErrorResponses(): JsonElement {
+    val root = this as? JsonObject ?: return this
+    val paths = root["paths"] as? JsonObject ?: return this
+
+    val patchedPaths = buildJsonObject {
+        for ((path, pathItem) in paths) {
+            if (pathItem !is JsonObject) {
+                put(path, pathItem)
+                continue
+            }
+            put(
+                path,
+                buildJsonObject {
+                    for ((key, operation) in pathItem) {
+                        if (key.lowercase() !in HTTP_METHODS || operation !is JsonObject) {
+                            put(key, operation)
+                        } else {
+                            put(key, operation.withDefaultErrorResponse())
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    val components = root["components"] as? JsonObject ?: JsonObject(emptyMap())
+    val schemas = components["schemas"] as? JsonObject ?: JsonObject(emptyMap())
+    val withError = schemas.replacing(
+        ERROR_SCHEMA,
+        buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            put("title", JsonPrimitive(ERROR_SCHEMA))
+            put("required", buildJsonArray { add(JsonPrimitive("error")) })
+            put(
+                "properties",
+                buildJsonObject {
+                    put("error", buildJsonObject { put("type", JsonPrimitive("string")) })
+                },
+            )
+        },
+    )
+
+    return root
+        .replacing("paths", patchedPaths)
+        .replacing("components", components.replacing("schemas", withError))
+}
+
+private fun JsonObject.withDefaultErrorResponse(): JsonObject {
+    val responses = this["responses"] as? JsonObject ?: JsonObject(emptyMap())
+    if (responses.containsKey("default")) return this
+
+    val default = buildJsonObject {
+        put("description", JsonPrimitive("Error handled by StatusPages (400, 404, 409 or 500)."))
+        put(
+            "content",
+            buildJsonObject {
+                put(
+                    "application/json",
+                    buildJsonObject {
+                        put(
+                            "schema",
+                            buildJsonObject { put("\$ref", JsonPrimitive("#/components/schemas/$ERROR_SCHEMA")) },
+                        )
+                    },
+                )
+            },
+        )
+    }
+    return replacing("responses", responses.replacing("default", default))
 }

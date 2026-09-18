@@ -2,10 +2,13 @@ package dev.michaellamb.tutorial.projects
 
 import dev.michaellamb.tutorial.module
 import io.ktor.client.request.get
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.formUrlEncode
@@ -66,7 +69,7 @@ class ProjectsRoutesTest {
         val client = createClient { followRedirects = false }
 
         val create = client.post("/admin/projects") {
-            contentType(ContentType.Application.FormUrlEncoded)
+            sameOriginForm()
             setBody(
                 listOf(
                     "name" to "demo.michaellamb.dev",
@@ -92,12 +95,27 @@ class ProjectsRoutesTest {
         val client = createClient { followRedirects = false }
 
         client.post("/admin/projects") {
-            contentType(ContentType.Application.FormUrlEncoded)
+            sameOriginForm()
             setBody(listOf("name" to "", "url" to "https://rejected.example").formUrlEncode())
         }
 
         // toProjectInput() returned null for the blank name, so nothing was persisted
         val admin = client.get("/admin/projects").bodyAsText()
         assertTrue(!admin.contains("rejected.example"), "blank-name submission is not saved")
+    }
+
+    private companion object {
+        /**
+         * Mark a request as the same-origin HTML form POST a browser would actually send.
+         *
+         * plugins/Csrf.kt installs CSRF with `originMatchesHost()` on the /admin subtree, and that
+         * check rejects a request carrying no Origin header at all — which is exactly the shape of
+         * a scripted POST. Browsers do send Origin on form submissions, so the test has to as well.
+         */
+        fun HttpRequestBuilder.sameOriginForm() {
+            contentType(ContentType.Application.FormUrlEncoded)
+            header(HttpHeaders.Origin, "http://localhost")
+            header(HttpHeaders.Host, "localhost")
+        }
     }
 }
