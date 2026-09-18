@@ -4,7 +4,7 @@
 [![Uptime (24h)](https://status.michaellamb.dev/api/badge/15/uptime/24)](https://status.michaellamb.dev)
 [![Ping](https://status.michaellamb.dev/api/badge/15/ping)](https://status.michaellamb.dev)
 
-Ktor service whose endpoints are written to teach Kotlin language features. Plus a small in-memory CRUD module for `/notes`.
+Ktor service whose endpoints are written to teach Kotlin language features — one route per feature, plus a set of Ktor plugins each demonstrating one piece of the framework. `/notes` is a CRUD module persisted to SQLite via Exposed.
 
 An interactive homepage at `/` lists every route with live "Run ▶" buttons, `/swagger` exposes a fully testable Swagger UI, and `/widgets/*` serves server-rendered HTML fragments for the blog dashboard.
 
@@ -16,8 +16,14 @@ Deployed to `node5` of the homelab Pi cluster, reachable at `https://kotlin-tuto
 
 | Endpoint | What |
 |---|---|
-| `GET /` | interactive HTML directory of every route with live "Run ▶" buttons (kotlinx.html DSL) |
-| `GET /swagger` | Swagger UI; the OpenAPI spec is inferred from the routing tree at compile time by Ktor's `openApi` plugin, then post-processed in `plugins/OpenApi.kt` |
+| `GET /` | interactive HTML directory of every route with live "Run ▶" buttons (kotlinx.html DSL). Leads with Notes + Widgets; the language tour follows below. Each card carries a **Docs ↗** link into Swagger |
+| `GET /swagger` | Swagger UI; the OpenAPI spec is inferred from the routing tree at compile time by Ktor's `openApi` plugin, then post-processed in `plugins/OpenApi.kt` (which also supplies the `operationId`, tag and summary Ktor leaves empty). Deep linking is on, so `…/swagger?docExpansion=none#/Tour/get_tour_variables` opens that one operation |
+| `GET /metrics` | Prometheus scrape target (Micrometer) |
+| `GET /archive` | Type-safe routing from `@Resource` classes — filters decoded into a constructor, not read from `call.parameters` |
+| `GET /htmx` | The same interaction as the home page's Run buttons, with no hand-written JavaScript |
+| `GET /stream/now` | The /now digest over Server-Sent Events, fed by a cold `Flow` |
+| `GET /ws/now` | The WebSocket sibling of `/stream/now` |
+| `POST /demo-auth/token` | Mints a demo JWT. These routes protect nothing — the real `/admin` gate is Cloudflare Access |
 
 ### Language tour (`/tour/*`)
 

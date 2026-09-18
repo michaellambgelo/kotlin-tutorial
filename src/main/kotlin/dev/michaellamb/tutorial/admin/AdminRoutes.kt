@@ -21,6 +21,7 @@ import io.ktor.http.ContentType
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
+import dev.michaellamb.tutorial.plugins.installAdminCsrf
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -55,6 +56,10 @@ private val VALID_EXPIRY = setOf("today", "day", "week")
 
 fun Route.adminRoutes(client: HttpClient) {
     route("/admin") {
+        // Route-scoped: these JS-free form POSTs are the CSRF-vulnerable surface, and applying
+        // the check application-wide would break the cross-origin POST /notes. See plugins/Csrf.kt.
+        installAdminCsrf()
+
         get {
             val result = runCatching { NowStore.list(client) }
             call.respondText(

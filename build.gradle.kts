@@ -14,6 +14,12 @@ application {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        // Context parameters are a Kotlin 2.2 preview feature and are off by default; /tour/context
+        // -parameters exists to demonstrate them. They replace the earlier -Xcontext-receivers
+        // design, so the old flag name will not work on 2.2.
+        freeCompilerArgs.add("-Xcontext-parameters")
+    }
 }
 
 repositories {
@@ -37,6 +43,25 @@ dependencies {
     implementation("io.ktor:ktor-server-html-builder")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-swagger") // serves Swagger UI at /swagger
+
+    // --- Ktor plugins each demonstrating one piece of the framework (see plugins/) ---
+    implementation("io.ktor:ktor-server-call-id") // request correlation id -> MDC, pairs with CallLogging
+    implementation("io.ktor:ktor-server-caching-headers") // Cache-Control
+    implementation("io.ktor:ktor-server-conditional-headers") // ETag / If-None-Match -> 304
+    implementation("io.ktor:ktor-server-compression") // gzip/deflate negotiation
+    implementation("io.ktor:ktor-server-csrf") // Origin/Referer checks for the JS-free admin forms
+    implementation("io.ktor:ktor-server-resources") // type-safe routing from @Resource classes
+    implementation("io.ktor:ktor-server-sse") // Server-Sent Events, fed by a kotlinx Flow
+    implementation("io.ktor:ktor-server-websockets") // duplex sibling of SSE
+    implementation("io.ktor:ktor-server-di") // constructor wiring via `by dependencies`
+    implementation("io.ktor:ktor-server-auth") // Authentication plugin (the /demo-auth routes)
+    implementation("io.ktor:ktor-server-auth-jwt") // JWT verification
+    implementation("io.ktor:ktor-server-htmx") // request-side hx-* header helpers
+    implementation("io.ktor:ktor-htmx-html") // typed hx-* attributes for the kotlinx.html DSL
+    implementation("io.ktor:ktor-server-metrics-micrometer")
+    // Micrometer's Prometheus registry is NOT in Ktor's BOM (the BOM carries micrometer-core only),
+    // so this one needs an explicit version. Aligned with the micrometer 1.17.x line Ktor targets.
+    implementation("io.micrometer:micrometer-registry-prometheus:1.17.1")
     implementation("io.ktor:ktor-server-routing-openapi") // OpenApiDoc + routing-tree spec source
     // @Serializable annotations are read ONLY by the OpenAPI schema generator (kotlinx-based), and
     // plugins/OpenApi.kt uses the kotlinx JSON tree to post-process the generated spec. Runtime JSON

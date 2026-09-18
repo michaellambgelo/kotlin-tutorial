@@ -6,9 +6,19 @@
  * of every route the service exposes, with a "Run" button per endpoint that calls the
  * live API via fetch() (same origin, no CORS hop). The IDE/Darcula palette nods at the
  * fact that this is a Kotlin teaching service.
+ *
+ * The card data itself lives in catalog/EndpointCatalog.kt, shared with the OpenAPI
+ * post-processor so a card's "Docs" link and the spec's operationId are minted together.
  */
 package dev.michaellamb.tutorial.home
 
+import dev.michaellamb.tutorial.catalog.EndpointCard
+import dev.michaellamb.tutorial.catalog.WidgetCard
+import dev.michaellamb.tutorial.catalog.healthCard
+import dev.michaellamb.tutorial.catalog.swaggerHref
+import dev.michaellamb.tutorial.catalog.swaggerTagHref
+import dev.michaellamb.tutorial.catalog.tourEndpoints
+import dev.michaellamb.tutorial.catalog.widgetCards
 import io.ktor.http.ContentType
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -51,398 +61,6 @@ import kotlinx.html.title
 import kotlinx.html.ul
 import kotlinx.html.unsafe
 
-private data class EndpointCard(
-    val method: String,
-    val path: String,
-    val summary: String,
-    val snippet: String,
-    val requestBody: String? = null,
-)
-
-// Ordered to follow the official Kotlin tour (kotlinlang.org/docs/kotlin-tour-welcome.html):
-// the beginner chapters, then the intermediate ones, then what this service adds on top.
-private val tourEndpoints: List<EndpointCard> = listOf(
-    // ---- Beginner tour ----
-    EndpointCard(
-        method = "GET",
-        path = "/tour/variables?name=Kodee",
-        summary = "val vs var, type inference, string templates.",
-        snippet = """
-            val name = "Kodee"        // read-only, type inferred
-            var counter = 0           // reassignable
-            val declared: Long = 42   // explicit — no implicit widening
-
-            "Hello, ${'$'}name!"                              // template
-            "${'$'}name has ${'$'}{name.length} characters"       // expression
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/basic-types",
-        summary = "Int / Long / Double / Boolean / Char / String and explicit conversion.",
-        snippet = """
-            val whole = 100          // Int
-            val big = 100L           // Long
-            val letter = 'K'         // Char, not a String
-
-            whole.toLong() + big     // conversions are always explicit
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/collection-types",
-        summary = "List / Set / Map, read-only by default and their mutable siblings.",
-        snippet = """
-            val readOnly = listOf("green", "red")     // no add() at all
-            val mutable = mutableListOf("green").apply { add("yellow") }
-
-            setOf("a", "b", "a").size                 // 2 — duplicates collapse
-            mapOf("kiwi" to 190)["durian"]            // null, doesn't throw
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/control-flow?n=7",
-        summary = "if/when as expressions, ranges, for and while loops.",
-        snippet = """
-            val parity = if (n % 2 == 0) "even" else "odd"   // no ternary needed
-
-            val size = when (n) {
-              0 -> "nothing"
-              in 2..9 -> "a handful"
-              else -> "a lot"
-            }
-
-            for (i in 5 downTo 1 step 2) { /* 5, 3, 1 */ }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/functions?name=Han%20Solo",
-        summary = "Default parameters, named arguments, single-expression bodies, early returns.",
-        snippet = """
-            fun greet(name: String, greeting: String = "Hello") = "${'$'}greeting, ${'$'}name"
-
-            greet(name, excited = true)          // skip the middle parameter
-            greet(greeting = "Howdy", name = n)  // any order, once named
-
-            fun square(n: Int) = n * n           // single expression, inferred type
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/data-class",
-        summary = "data class — auto-derived equals, copy, destructuring, componentN.",
-        snippet = """
-            data class User(val id: Int, val name: String, val email: String)
-
-            val original = User(1, "Han Solo", "han@falcon.test")
-            val renamed = original.copy(name = "Chewbacca")
-            val (_, name, email) = renamed
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "POST",
-        path = "/tour/null-safety",
-        summary = "Nullable types: safe call ?., Elvis ?:, let, smart cast.",
-        snippet = """
-            val length = nickname?.length            // safe call
-            val display = nickname ?: "anonymous"    // Elvis fallback
-            val shouted = nickname?.let { it.uppercase() }
-            if (nickname != null) nickname[0]        // smart cast inside if
-        """.trimIndent(),
-        requestBody = """{ "nickname": "luke" }""",
-    ),
-
-    // ---- Intermediate tour ----
-    EndpointCard(
-        method = "GET",
-        path = "/tour/extensions?text=Hello%20World&n=17",
-        summary = "Extension functions — add methods to types you don't own.",
-        snippet = """
-            fun String.toSlug(): String =
-              lowercase()
-                .replace(Regex("[^a-z0-9\\s-]"), "")
-                .trim()
-                .replace(Regex("\\s+"), "-")
-
-            fun Int.isPrime(): Boolean { /* ... */ }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/scope-functions",
-        summary = "let, run, with, apply, also — same effect, five flavors.",
-        snippet = """
-            "kotlin".let { name -> "Hello, ${'$'}name!" }      // it, returns block
-            "kotlin".run { "Hello, ${'$'}this!" }              // this, returns block
-            GreetingBuilder().apply { name = "kotlin" }    // this, returns receiver
-            "kotlin".also { println("logging: ${'$'}it") }     // it, returns receiver
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/lambdas-with-receiver",
-        summary = "Lambdas with receiver — the shape behind every Kotlin builder DSL.",
-        snippet = """
-            fun menu(name: String, init: Menu.() -> Unit) = Menu(name).apply(init)
-
-            menu("Breakfast") {
-              item("Coffee", 350)      // `this` is the Menu — no qualifier
-              item("Pancakes", 900)
-            }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/interfaces",
-        summary = "Interfaces + polymorphism — default methods, dynamic dispatch.",
-        snippet = """
-            interface Animal {
-              val name: String
-              fun sound(): String
-              fun describe() = "${'$'}name says ${'$'}{sound()}"   // default method
-            }
-
-            class Dog(override val name: String) : Animal {
-              override fun sound() = "Woof"
-            }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/delegation",
-        summary = "Interface delegation — `by` writes the forwarding boilerplate for you.",
-        snippet = """
-            class RedPen(private val base: DrawingTool = PenTool()) :
-              DrawingTool by base {
-                override val color = "red"
-                override fun draw(shape: String) = "drawing ${'$'}shape in ${'$'}color"
-              }
-            // erase() and info() are forwarded to `base`, never written here
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/objects",
-        summary = "object declarations — singletons, data objects, companion objects.",
-        snippet = """
-            object Registry { fun register(name: String): Int { /* ... */ } }
-
-            data object AppConfig { const val VERSION = "1.0.0" }
-
-            class Temperature private constructor(val celsius: Double) {
-              companion object { fun fromFahrenheit(f: Double) = /* ... */ }
-            }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/open-classes",
-        summary = "Classes are final by default — open, abstract, override, super.",
-        snippet = """
-            abstract class Vehicle(val name: String, val wheels: Int) {
-              abstract fun sound(): String
-              open fun describe() = "${'$'}name goes ${'$'}{sound()}"
-            }
-
-            class RaceCar(name: String) : Car(name) {
-              override fun describe() = super.describe() + " (at speed)"
-            }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "POST",
-        path = "/tour/sealed-when",
-        summary = "sealed interface + exhaustive when — no else needed.",
-        snippet = """
-            sealed interface Shape {
-              data class Circle(val radius: Double) : Shape
-              data class Square(val side: Double) : Shape
-            }
-
-            fun Shape.area(): Double = when (this) {
-              is Shape.Circle -> PI * radius * radius
-              is Shape.Square -> side * side
-            }
-        """.trimIndent(),
-        requestBody = """{ "type": "Circle", "radius": 5 }""",
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/enums?planet=jupiter",
-        summary = "enum class — per-constant state, overrides, entries, exhaustive when.",
-        snippet = """
-            enum class Planet(val radiusKm: Double, val gravity: Double) {
-              EARTH(6371.0, 9.81),
-              JUPITER(69911.0, 24.79) {
-                override fun blurb() = "big and stormy"
-              };
-              open fun blurb() = "radius ${'$'}{radiusKm}km"
-            }
-
-            Planet.entries.find { it.name == requested }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/value-classes",
-        summary = "@JvmInline value class — distinct types, no wrapper allocation.",
-        snippet = """
-            @JvmInline
-            value class UserId(val raw: String) {
-              init { require(raw.isNotBlank()) }
-            }
-
-            fun invite(id: UserId, email: EmailAddress)
-            // invite(email, id) does not compile — both are Strings only at runtime
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/properties",
-        summary = "Backing fields, extension properties, by lazy, Delegates.observable.",
-        snippet = """
-            var name: String = ""
-              set(value) { field = value.trim() }   // `field`, not `name` — no recursion
-
-            val String.lastChar: Char get() = this[length - 1]
-
-            val token: String by lazy { expensive() }              // computed once
-            var logLevel by Delegates.observable("INFO") { p, o, n -> log(o, n) }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/smart-casts?value=luke",
-        summary = "Smart casts, as? safe casts, and null-aware collection operators.",
-        snippet = """
-            when (input) {
-              is Int -> input * 2                 // smart cast, no explicit cast
-              is String -> input.uppercase()
-            }
-
-            (anything as? String)?.uppercase() ?: "not a String"
-            listOf("a", null, "b").filterNotNull()
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/opt-in?text=kotlin",
-        summary = "@RequiresOptIn / @OptIn, plus kotlin.time Durations.",
-        snippet = """
-            @RequiresOptIn(level = RequiresOptIn.Level.ERROR)
-            annotation class ExperimentalTutorialApi
-
-            @OptIn(ExperimentalTutorialApi::class, ExperimentalUnsignedTypes::class)
-            fun demo() = uintArrayOf(1u, 2u, 3u)
-
-            (90.minutes + 500.milliseconds).toIsoString()   // PT1H30M0.500S
-        """.trimIndent(),
-    ),
-
-    // ---- Beyond the tour ----
-    EndpointCard(
-        method = "GET",
-        path = "/tour/collections",
-        summary = "Collection operations — groupBy, sumOf, partition, runningFold.",
-        snippet = """
-            val byAuthor = library.groupBy { it.author }
-            val totalPages = library.sumOf { it.pages }
-            val (long, short) = library.partition { it.pages > 500 }
-            library.runningFold(0) { acc, b -> acc + b.pages }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/higher-order-functions?x=10",
-        summary = "Higher-order functions — functions as values, refs, composition.",
-        snippet = """
-            val double: (Int) -> Int = { it * 2 }
-
-            infix fun <A, B, C> ((A) -> B).then(g: (B) -> C): (A) -> C =
-              { a -> g(this(a)) }
-
-            listOf("luke", "leia").map(String::uppercase)  // function reference
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/sequences",
-        summary = "Sequences — lazy evaluation, short-circuit, generateSequence.",
-        snippet = """
-            (1..1000).asSequence()
-              .map { it * it }        // lazy — runs per element
-              .first { it > 1000 }    // short-circuits (~32 invocations)
-
-            generateSequence(0 to 1) { (a, b) -> b to (a + b) }
-              .map { it.first }.take(10).toList()
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/coroutines",
-        summary = "Structured concurrency — coroutineScope + async parallelism.",
-        snippet = """
-            val parallelMs = measureTimeMillis {
-              coroutineScope {
-                val a = async { fakeApiCall("a", 200) }
-                val b = async { fakeApiCall("b", 200) }
-                listOf(a.await(), b.await())
-              }
-            }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/result?n=16",
-        summary = "Error handling — runCatching, Result, fold, getOrElse.",
-        snippet = """
-            class NegativeInputException(n: Int) :
-              IllegalArgumentException("negative: ${'$'}n")
-
-            val folded = runCatching { checkedSqrt(n) }
-              .fold({ "ok: ${'$'}it" }, { "error: ${'$'}{it.message}" })
-
-            runCatching { checkedSqrt(-1) }.getOrElse { Double.NaN }
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/generics",
-        summary = "Generics — bounded type params, out variance, reified types.",
-        snippet = """
-            fun <T : Comparable<T>> maxOf(items: List<T>): T? = items.maxOrNull()
-
-            class Box<out T>(val value: T)               // covariant producer
-
-            inline fun <reified T> List<*>.ofType() = filterIsInstance<T>()
-        """.trimIndent(),
-    ),
-    EndpointCard(
-        method = "GET",
-        path = "/tour/reflection",
-        summary = "Reflection — KClass, memberProperties, callable references.",
-        snippet = """
-            data class Droid(val id: String, val model: String)
-
-            val props = Droid::class.memberProperties
-              .associate { it.name to it.get(r2) }
-
-            Droid::class.isData          // true
-            Droid::model.get(r2)         // callable reference
-        """.trimIndent(),
-    ),
-)
-
-private val widgetCards: List<Triple<String, String, String>> = listOf(
-    Triple("/widgets/letterboxd", "Letterboxd", "Recent watches via RSS — kotlinx.html DSL fragment, 60s cache."),
-    Triple("/widgets/steam", "Steam", "Recently played games via Steam Web API — graceful fallback if STEAM_API_KEY unset."),
-    Triple("/widgets/cluster", "Cluster", "Homelab status via Uptime Kuma — parallel async fetches with structured concurrency."),
-    Triple("/widgets/github", "GitHub", "Recent commits (last 24h) via the GitHub search API — java.time rolling window + groupBy repo."),
-    Triple("/widgets/recently-updated", "Recently updated", "Hand-curated blurbs from a KV-backed Cloudflare Worker behind Cloudflare Access — an `object` client issuing authenticated GET/POST/DELETE."),
-)
-
 fun Route.homeRoutes() {
     get("/") {
         call.respondText(renderHome(), ContentType.Text.Html)
@@ -480,43 +98,20 @@ private fun renderHome(): String {
                     }
                 }
                 nav {
-                    a(href = "#tour") { +"Tour" }
-                    a(href = "#widgets") { +"Widgets" }
                     a(href = "#notes") { +"Notes" }
+                    a(href = "#widgets") { +"Widgets" }
+                    a(href = "#tour") { +"Tour" }
                     a(href = "#health") { +"Health" }
                     a(href = "/swagger") { +"Swagger ↗" }
                 }
             }
             main {
                 section("group") {
-                    id = "tour"
-                    h2 { +"Tour" }
-                    p("group-blurb") { +"One file per language feature in src/main/kotlin/.../tour/." }
-                    div("cards") {
-                        tourEndpoints.forEach { renderEndpointCard(it) }
-                    }
-                }
-                section("group") {
-                    id = "widgets"
-                    h2 { +"Widgets" }
-                    p("group-blurb") { +"Server-rendered HTML fragments consumed by the blog. Embedded live below." }
-                    div("widget-grid") {
-                        widgetCards.forEach { (path, name, summary) ->
-                            div("widget-card") {
-                                attributes["data-widget-src"] = path
-                                div("card-head") {
-                                    span("method get") { +"GET" }
-                                    span("path") { +path }
-                                }
-                                p("summary") { +summary }
-                                div("widget-mount") { +"loading…" }
-                            }
-                        }
-                    }
-                }
-                section("group") {
                     id = "notes"
-                    h2 { +"Notes (CRUD)" }
+                    div("group-head") {
+                        h2 { +"Notes (CRUD)" }
+                        a(href = swaggerTagHref("Notes"), classes = "docs-link") { +"Docs ↗" }
+                    }
                     p("group-blurb") {
                         +"Exercises all five "
                         code { +"/notes" }
@@ -577,22 +172,26 @@ private fun renderHome(): String {
                     }
                 }
                 section("group") {
+                    id = "widgets"
+                    h2 { +"Widgets" }
+                    p("group-blurb") { +"Server-rendered HTML fragments consumed by the blog. Embedded live below." }
+                    div("widget-grid") {
+                        widgetCards.forEach { renderWidgetCard(it) }
+                    }
+                }
+                section("group") {
+                    id = "tour"
+                    h2 { +"Tour" }
+                    p("group-blurb") { +"One file per language feature in src/main/kotlin/.../tour/." }
+                    div("cards") {
+                        tourEndpoints.forEach { renderEndpointCard(it) }
+                    }
+                }
+                section("group") {
                     id = "health"
                     h2 { +"Health" }
                     div("cards") {
-                        renderEndpointCard(
-                            EndpointCard(
-                                method = "GET",
-                                path = "/health",
-                                summary = "Liveness check used by the Docker HEALTHCHECK and the badge above.",
-                                snippet = """
-                                    get("/health") {
-                                      val uptime = (System.currentTimeMillis() - startTimeMillis) / 1000
-                                      call.respond(HealthResponse("ok", uptime, "0.1.0"))
-                                    }
-                                """.trimIndent(),
-                            ),
-                        )
+                        renderEndpointCard(healthCard)
                     }
                 }
             }
@@ -638,8 +237,27 @@ private fun kotlinx.html.FlowContent.renderEndpointCard(card: EndpointCard) {
                 attributes["onclick"] = "runEndpoint(this)"
                 +"Run ▶"
             }
+            a(href = swaggerHref(card.method, card.path), classes = "docs-link") { +"Docs ↗" }
         }
         pre("result") { +"" }
+    }
+}
+
+// Widget cards mirror the endpoint card's head, but mount a live HTML fragment instead of a Run
+// button — loadWidgets() in PAGE_JS finds them by .widget-card + data-widget-src.
+private fun kotlinx.html.FlowContent.renderWidgetCard(card: WidgetCard) {
+    div("widget-card") {
+        attributes["data-widget-src"] = card.path
+        div("card-head") {
+            span("method get") { +"GET" }
+            span("path") { +card.path }
+        }
+        h3("widget-name") { +card.name }
+        p("summary") { +card.summary }
+        div("widget-mount") { +"loading…" }
+        div("button-row") {
+            a(href = swaggerHref("GET", card.path), classes = "docs-link") { +"Docs ↗" }
+        }
     }
 }
 
@@ -700,8 +318,10 @@ nav a { color: var(--text-dim); }
 nav a:hover { color: var(--accent); }
 
 main { padding: 24px 32px 64px; max-width: 1200px; margin: 0 auto; }
-.group { margin-top: 32px; }
+.group { margin-top: 32px; scroll-margin-top: 170px; } /* clears the sticky .page-header */
 .group h2 { font-size: 16px; color: #e6e6e6; margin: 0 0 4px; font-weight: 600; }
+.group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 4px; }
+.group-head h2 { margin: 0; }
 .group-blurb { color: var(--text-dim); margin: 0 0 16px; }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
@@ -775,6 +395,14 @@ button:hover { border-color: var(--accent); color: #fff; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.primary:hover { background: #6aa3f0; }
 button.ghost { background: transparent; }
+.docs-link {
+  font-size: 12px;
+  align-self: center;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border);
+}
+.docs-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
 button.danger { color: var(--delete); border-color: var(--delete); }
 
 pre.result {
@@ -802,7 +430,10 @@ pre.result.err { color: var(--delete); }
   flex-direction: column;
   gap: 10px;
 }
-.widget-mount { background: #181a1d; border-radius: 4px; padding: 10px; min-height: 100px; color: var(--text-dim); overflow-x: auto; }
+.widget-name { font-size: 14px; color: #e6e6e6; margin: 0; font-weight: 600; }
+/* Bounded preview, not a full render: /widgets/cluster is ~1640px tall on its own and grid stretches
+   its entire row to match, which pushed the Tour section ~3000px down the page. */
+.widget-mount { background: #181a1d; border-radius: 4px; padding: 10px; min-height: 100px; max-height: 220px; color: var(--text-dim); overflow: auto; }
 
 .notes-app { display: grid; grid-template-columns: minmax(280px, 1fr) 2fr; gap: 16px; }
 @media (max-width: 720px) { .notes-app { grid-template-columns: 1fr; } }

@@ -1,5 +1,6 @@
 package dev.michaellamb.tutorial.notes
 
+import dev.michaellamb.tutorial.errors.ApiException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -14,8 +15,11 @@ import java.util.UUID
 // Kotlin in a REST handler:
 // - call.receive<T>() — Ktor uses ContentNegotiation to decode the JSON body to T
 // - call.respond(status, body) — serialize and send
-// - Elvis with `return@get` — idiomatic 404 short-circuit on null
-// - `require { }` — throws IllegalArgumentException; Ktor's StatusPages can map it
+// - Elvis throwing instead of returning — `?: throw` is an expression, so the happy path stays
+//   unindented and `id` is non-null below it. Compare the earlier version of this file, which
+//   repeated `?: return@get call.respond(BadRequest, mapOf(...))` at four call sites.
+// - Errors become plugins/StatusPages.kt's problem: handlers describe *what went wrong*, one
+//   place decides *what that means over HTTP*.
 fun Route.noteRoutes(repo: NoteRepository) {
     route("/notes") {
         get {
@@ -23,39 +27,42 @@ fun Route.noteRoutes(repo: NoteRepository) {
         }
 
         get("/{id}") {
-            val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid id"))
-            val note = repo.get(id)
-                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "note not found"))
+            val id = call.noteId()
+            val note = repo.get(id) ?: throw ApiException.NotFound("note", id)
             call.respond(note)
         }
 
         post {
             val req = call.receive<CreateNoteRequest>()
-            if (req.title.isBlank()) {
-                return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "title required"))
-            }
-            val created = repo.create(req)
-            call.respond(HttpStatusCode.Created, created)
+            // require() throws IllegalArgumentException, which StatusPages maps to a 400.
+            require(req.title.isNotBlank()) { "title required" }
+            call.respond(HttpStatusCode.Created, repo.create(req))
         }
 
         put("/{id}") {
-            val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid id"))
+            val id = call.noteId()
             val req = call.receive<UpdateNoteRequest>()
-            val updated = repo.update(id, req)
-                ?: return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "note not found"))
+            val updated = repo.update(id, req) ?: throw ApiException.NotFound("note", id)
             call.respond(updated)
         }
 
         delete("/{id}") {
-            val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid id"))
-            if (repo.delete(id)) {
-                call.respond(HttpStatusCode.NoContent)
-            } else {
-                call.respond(HttpStatusCode.NotFound, mapOf("error" to "note not found"))
-            }
+            val id = call.noteId()
+            if (!repo.delete(id)) throw ApiException.NotFound("note", id)
+            call.respond(HttpStatusCode.NoContent)
         }
     }
+}
+
+/**
+ * The `{id}` path segment as a UUID.
+ *
+ * An extension function on ApplicationCall (see /tour/extensions) — the parsing that used to be
+ * copy-pasted into four handlers, named once. Returns a non-null UUID or throws; there is no
+ * "maybe" state for callers to forget about.
+ */
+private fun io.ktor.server.application.ApplicationCall.noteId(): UUID {
+    val raw = parameters["id"] ?: throw ApiException.BadRequest("id required")
+    return runCatching { UUID.fromString(raw) }
+        .getOrElse { throw ApiException.BadRequest("invalid id: $raw") }
 }

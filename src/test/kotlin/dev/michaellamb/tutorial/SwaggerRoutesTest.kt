@@ -3,7 +3,14 @@ package dev.michaellamb.tutorial
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import dev.michaellamb.tutorial.catalog.tagOrder
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -59,5 +66,87 @@ class SwaggerRoutesTest {
             spec.contains("\"example\":{\"type\":\"Circle\",\"radius\":3.0}"),
             "sealed-when request body should carry a deserializable example",
         )
+    }
+
+    @Test
+    fun `swagger ui is served with deep linking enabled`() = testApplication {
+        application { module() }
+        val body = client.get("/swagger").bodyAsText()
+        // Without this the /swagger#/Tag/operationId anchors the home page builds are inert:
+        // swagger-ui simply ignores the fragment. See catalog/EndpointCatalog.kt#swaggerHref.
+        assertTrue(body.contains("deepLinking: true"), "expected deep linking to be enabled")
+    }
+
+    @Test
+    fun `every operation carries a unique operationId, a tag and a summary`() = testApplication {
+        application { module() }
+        val spec = client.get("/swagger/documentation.yaml").bodyAsText()
+        val operations = operationsIn(spec)
+        assertTrue(operations.isNotEmpty(), "expected the spec to document some operations")
+
+        // The compiler plugin leaves all three empty unless a route is annotated; plugins/OpenApi.kt
+        // fills them from the shared catalog. This is the check that catches a new route being
+        // added without a catalog entry.
+        operations.forEach { (name, operation) ->
+            assertTrue(
+                (operation["operationId"] as? JsonPrimitive)?.content?.isNotBlank() == true,
+                "$name should carry an operationId",
+            )
+            assertTrue(
+                operation["tags"]?.jsonArray?.isNotEmpty() == true,
+                "$name should carry a tag",
+            )
+            assertTrue(
+                (operation["summary"] as? JsonPrimitive)?.content?.isNotBlank() == true,
+                "$name should carry a summary",
+            )
+        }
+
+        // OpenAPI requires distinct operationIds and swagger-ui resolves deep links by id, so a
+        // collision would silently point two home-page cards at the same anchor. operationIdFor
+        // collapses '/', '-', '.' and '{}' all to '_', which is exactly how that could happen.
+        val ids = operations.map { (_, operation) -> operation.getValue("operationId").jsonPrimitive.content }
+        assertEquals(ids.size, ids.toSet().size, "operationIds must be unique; got duplicates in $ids")
+    }
+
+    @Test
+    fun `operations are tagged into the sections the home page links at`() = testApplication {
+        application { module() }
+        val spec = client.get("/swagger/documentation.yaml").bodyAsText()
+        val root = Json.parseToJsonElement(spec).jsonObject
+        val paths = root.getValue("paths").jsonObject
+
+        fun tagOf(path: String, method: String) =
+            paths.getValue(path).jsonObject.getValue(method).jsonObject
+                .getValue("tags").jsonArray.single().jsonPrimitive.content
+
+        assertEquals("Tour", tagOf("/tour/variables", "get"))
+        assertEquals("Notes", tagOf("/notes/{id}", "delete"))
+        assertEquals("Widgets", tagOf("/widgets/steam", "get"))
+        assertEquals("Service", tagOf("/health", "get"))
+
+        assertEquals(
+            "get_tour_variables",
+            paths.getValue("/tour/variables").jsonObject.getValue("get").jsonObject
+                .getValue("operationId").jsonPrimitive.content,
+        )
+
+        // Swagger UI orders its sections by the document-level tags array, so this is what makes the
+        // docs page mirror the home page's section order.
+        // Compare against the catalog rather than a literal, so adding a tag needs one edit, not two.
+        val declaredTags = root.getValue("tags").jsonArray.map { it.jsonObject.getValue("name").jsonPrimitive.content }
+        assertEquals(tagOrder.map { it.first }, declaredTags)
+    }
+
+    private companion object {
+        val HTTP_METHODS = setOf("get", "put", "post", "delete", "options", "head", "patch", "trace")
+
+        /** Every (label, operation) pair in the spec, skipping non-operation path-item keys. */
+        fun operationsIn(spec: String): List<Pair<String, JsonObject>> =
+            Json.parseToJsonElement(spec).jsonObject.getValue("paths").jsonObject.flatMap { (path, item) ->
+                item.jsonObject.entries
+                    .filter { it.key.lowercase() in HTTP_METHODS }
+                    .map { "${it.key.uppercase()} $path" to it.value.jsonObject }
+            }
     }
 }
