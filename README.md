@@ -91,7 +91,9 @@ Unconfigured widgets degrade to a non-fatal "not configured" / "unavailable" fra
 
 ### Admin (`/admin`)
 
-Publish/delete entries for the "Recently updated" feed. Gated at the edge by **Cloudflare Access** (email one-time-PIN); open locally for dev. Writes are proxied to the now-store Worker with the Access service token.
+Publish/delete entries for the "Recently updated" feed (and `/admin/projects` for the Projects list). Gated at the edge by **Cloudflare Access** (email one-time-PIN) and in-app by verifying Access's `Cf-Access-Jwt-Assertion` token; open locally for dev. Writes are proxied to the now-store Worker with the Access service token.
+
+The same forms are also served on the admin host (`ADMIN_HOST`, i.e. `admin.michaellamb.dev`) as `/notes` and `/projects`, with a hub at `/` linking every admin tool. Locally: `ADMIN_HOST=admin.localhost ./gradlew run`, then open `http://admin.localhost:8080/`.
 
 | Method | Path | |
 |---|---|---|
@@ -118,6 +120,9 @@ All optional — widgets and admin degrade gracefully when unset.
 | `NOW_STORE_URL` | recently-updated widget, admin | `https://now-store.michaellamb.dev` |
 | `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | recently-updated widget, admin | — (Cloudflare Access service token) |
 | `HOMELAB_BOT_NOTE_HOOK_URL`, `NOTE_HOOK_SECRET` | admin — push new notes to homelab-bot (#general embed) | — (push is a no-op when unset) |
+| `ADMIN_HOST` | admin portal hostname (port ignored) | — (portal layout off) |
+| `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` | in-app Access token check on every admin route | — (check off) |
+| `HOMELAB_BOT_STATUS_URL` | hub status dots (homelab-bot `/apps.json`) | — ("status unknown") |
 
 ## Local development
 
