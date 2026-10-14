@@ -1,5 +1,6 @@
 package dev.michaellamb.tutorial
 
+import dev.michaellamb.tutorial.auth.CloudflareAccess
 import dev.michaellamb.tutorial.plugins.configureAuthentication
 import dev.michaellamb.tutorial.plugins.configureCors
 import dev.michaellamb.tutorial.plugins.configureDependencies
@@ -10,6 +11,7 @@ import dev.michaellamb.tutorial.plugins.configureSerialization
 import dev.michaellamb.tutorial.plugins.configureStatusPages
 import dev.michaellamb.tutorial.plugins.configureStreaming
 import io.ktor.server.application.Application
+import io.ktor.server.application.log
 import io.ktor.server.netty.EngineMain
 
 fun main(args: Array<String>) {
@@ -17,6 +19,10 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    // Read once and handed to both plugins that need it, so the provider and the routes that use it
+    // can't disagree about whether the Access check is on.
+    val access = CloudflareAccess.fromEnv()
+    if (access == null) log.warn("Cloudflare Access token check is OFF (CF_ACCESS_TEAM_DOMAIN / CF_ACCESS_AUD unset)")
     configureDependencies()
     configureMonitoring()
     // Install before routing so it wraps every handler's failures.
@@ -24,7 +30,7 @@ fun Application.module() {
     configureSerialization()
     configureHttp()
     configureCors()
-    configureAuthentication()
+    configureAuthentication(access)
     configureStreaming()
-    configureRouting()
+    configureRouting(access)
 }

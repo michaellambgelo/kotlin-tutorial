@@ -22,7 +22,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.content.CachingOptions
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import dev.michaellamb.tutorial.admin.adminHostFromEnv
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
+import io.ktor.server.request.host
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
 import io.ktor.server.plugins.compression.gzip
@@ -32,15 +34,17 @@ import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 private const val WIDGET_MAX_AGE_SECONDS = 60
 private const val STATIC_MAX_AGE_SECONDS = 600
 
-fun Application.configureHttp() {
+fun Application.configureHttp(adminHost: String? = adminHostFromEnv()) {
     install(ConditionalHeaders)
 
     install(CachingHeaders) {
         options { call, outgoing ->
             val path = call.request.local.uri.substringBefore('?')
             when {
-                // Never let a browser hold onto an admin form or a mutation's result.
-                path.startsWith("/admin") -> CachingOptions(CacheControl.NoStore(null))
+                // Never let a browser hold onto an admin form or a mutation's result. On the admin
+                // host that's every path; on the public host only /admin* (its /notes is the API).
+                path.startsWith("/admin") || call.request.host().equals(adminHost, ignoreCase = true) ->
+                    CachingOptions(CacheControl.NoStore(null))
                 // Matches WidgetCache's own 60s TTL — the blog embeds these on every page view.
                 path.startsWith("/widgets/") ->
                     CachingOptions(CacheControl.MaxAge(WIDGET_MAX_AGE_SECONDS, visibility = CacheControl.Visibility.Public))

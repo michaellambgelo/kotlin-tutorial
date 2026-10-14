@@ -1,12 +1,12 @@
 /*
  * Admin form for the curated /about "Projects" list, served by Ktor at
- * /admin/projects and used to create/edit/delete/reorder the records that
+ * /admin/projects (and /projects on the admin host — see AdminPaths) and used to create/edit/delete/reorder the records that
  * /widgets/projects renders.
  *
  * Like AdminRoutes (the "Recently updated" admin), access is enforced at the EDGE
- * by Cloudflare Access — the same self-hosted Access app already covers /admin*,
- * so /admin/projects is gated with zero extra config. Locally there is no Access,
- * so it's open for dev. Writes go straight to the local ProjectRepository (SQLite
+ * by Cloudflare Access — the same Access app covers both layouts — and again
+ * in-app by the Access token check (auth/CloudflareAccess.kt). Locally there is
+ * neither, so it's open for dev. Writes go straight to the local ProjectRepository (SQLite
  * on the volume); there is no upstream Worker here, unlike the now-store admin.
  *
  * Plain same-origin HTML form POSTs: no JS, no JSON, no CORS preflight. Editing is
@@ -57,8 +57,8 @@ import java.util.UUID
 private val STATUS_BASE: String =
     System.getenv("UPTIME_KUMA_BASE_URL")?.takeIf { it.isNotBlank() } ?: "https://status.michaellamb.dev"
 
-fun Route.projectsAdminRoutes(repo: ProjectRepository) {
-    route("/admin/projects") {
+fun Route.projectsAdminRoutes(repo: ProjectRepository, paths: AdminPaths = AdminPaths.LEGACY) {
+    route(paths.projects) {
         // Route-scoped: these JS-free form POSTs are the CSRF-vulnerable surface, and applying
         // the check application-wide would break the cross-origin POST /notes. See plugins/Csrf.kt.
         installAdminCsrf()
@@ -66,32 +66,32 @@ fun Route.projectsAdminRoutes(repo: ProjectRepository) {
         get {
             val editId = call.request.queryParameters["edit"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
             val editing = editId?.let { repo.get(it) }
-            call.respondText(renderProjectsAdmin(repo.list(), editing), ContentType.Text.Html)
+            call.respondText(renderProjectsAdmin(repo.list(), editing, paths), ContentType.Text.Html)
         }
 
         post {
             val input = call.receiveParameters().toProjectInput()
             if (input != null) repo.create(input)
-            call.respondRedirect("/admin/projects")
+            call.respondRedirect(paths.projects)
         }
 
         post("/{id}/update") {
             val id = call.idParam()
             val input = call.receiveParameters().toProjectInput()
             if (id != null && input != null) repo.update(id, input)
-            call.respondRedirect("/admin/projects")
+            call.respondRedirect(paths.projects)
         }
 
         post("/{id}/delete") {
             call.idParam()?.let { repo.delete(it) }
-            call.respondRedirect("/admin/projects")
+            call.respondRedirect(paths.projects)
         }
 
         post("/{id}/move") {
             val id = call.idParam()
             val up = call.receiveParameters()["dir"] == "up"
             if (id != null) repo.move(id, up)
-            call.respondRedirect("/admin/projects")
+            call.respondRedirect(paths.projects)
         }
     }
 }
@@ -115,7 +115,7 @@ private fun Parameters.toProjectInput(): ProjectInput? {
     )
 }
 
-private fun renderProjectsAdmin(projects: List<Project>, editing: Project?): String =
+private fun renderProjectsAdmin(projects: List<Project>, editing: Project?, paths: AdminPaths): String =
     "<!DOCTYPE html>\n" + createHTML().html {
         attributes["lang"] = "en"
         head {
@@ -126,13 +126,13 @@ private fun renderProjectsAdmin(projects: List<Project>, editing: Project?): Str
         }
         body {
             div("wrap") {
-                p("nav") { a(href = "/admin") { +"← Recently updated" } }
+                p("nav") { a(href = paths.notes) { +"← Recently updated" } }
                 h1 { +"Projects — admin" }
                 p("sub") { +"Curate the list shown on the blog's /about page. Order with ▲/▼; archived projects stay here but drop off the page." }
 
                 val editingNow = editing != null
                 h2 { +if (editingNow) "Edit project" else "Add project" }
-                val action = if (editingNow) "/admin/projects/${editing!!.id}/update" else "/admin/projects"
+                val action = if (editingNow) "${paths.projects}/${editing!!.id}/update" else paths.projects
                 form(action = action, method = FormMethod.post, classes = "publish") {
                     label {
                         +"Name"
@@ -183,7 +183,7 @@ private fun renderProjectsAdmin(projects: List<Project>, editing: Project?): Str
                     div("row") {
                         button(type = ButtonType.submit) { +if (editingNow) "Save changes" else "Add project" }
                         if (editingNow) {
-                            a(href = "/admin/projects", classes = "cancel") { +"Cancel" }
+                            a(href = paths.projects, classes = "cancel") { +"Cancel" }
                         }
                     }
                 }
@@ -210,10 +210,10 @@ private fun renderProjectsAdmin(projects: List<Project>, editing: Project?): Str
                                 if (prj.tech.isNotEmpty()) div("tech") { +prj.tech.joinToString(" · ") }
                             }
                             div("actions") {
-                                moveForm(prj.id, up = true, disabled = index == 0)
-                                moveForm(prj.id, up = false, disabled = index == lastIndex)
-                                a(href = "/admin/projects?edit=${prj.id}", classes = "btn") { +"Edit" }
-                                form(action = "/admin/projects/${prj.id}/delete", method = FormMethod.post, classes = "del") {
+                                moveForm(prj.id, up = true, disabled = index == 0, paths = paths)
+                                moveForm(prj.id, up = false, disabled = index == lastIndex, paths = paths)
+                                a(href = "${paths.projects}?edit=${prj.id}", classes = "btn") { +"Edit" }
+                                form(action = "${paths.projects}/${prj.id}/delete", method = FormMethod.post, classes = "del") {
                                     button(type = ButtonType.submit, classes = "danger") { +"Delete" }
                                 }
                             }
@@ -224,8 +224,8 @@ private fun renderProjectsAdmin(projects: List<Project>, editing: Project?): Str
         }
     }
 
-private fun kotlinx.html.FlowContent.moveForm(id: UUID, up: Boolean, disabled: Boolean) {
-    form(action = "/admin/projects/$id/move", method = FormMethod.post, classes = "move") {
+private fun kotlinx.html.FlowContent.moveForm(id: UUID, up: Boolean, disabled: Boolean, paths: AdminPaths) {
+    form(action = "${paths.projects}/$id/move", method = FormMethod.post, classes = "move") {
         hiddenInput(name = "dir") { value = if (up) "up" else "down" }
         button(type = ButtonType.submit, classes = "icon") {
             if (disabled) attributes["disabled"] = "disabled"

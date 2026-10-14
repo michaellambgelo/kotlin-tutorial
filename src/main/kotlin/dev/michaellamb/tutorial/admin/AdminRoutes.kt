@@ -1,12 +1,14 @@
 /*
  * Admin form for the "Recently updated by Michael" feed, served by Ktor at
- * /admin and used to create/delete entries in the now-store Worker.
+ * /admin (and at /notes on the admin host — see AdminPaths) and used to
+ * create/delete entries in the now-store Worker.
  *
  * Access control is enforced at the EDGE by Cloudflare Access: a self-hosted
- * Access application scoped to `kotlin-tutorial.michaellamb.dev/admin*` with a
- * One-time-PIN email policy. Only an authenticated browser reaches these
- * handlers in production (locally there is no Access, so /admin is open for
- * dev). The write/delete calls are proxied to the now-store Worker via NowStore,
+ * Access application covering `kotlin-tutorial.michaellamb.dev/admin` and
+ * `admin.michaellamb.dev` with a One-time-PIN email policy — and again in-app,
+ * where Routing.kt mounts these behind the Access token check (see
+ * auth/CloudflareAccess.kt). Locally there is neither, so the forms are open for
+ * dev. The write/delete calls are proxied to the now-store Worker via NowStore,
  * which presents the Access service-token headers — the browser never holds a
  * credential.
  *
@@ -54,8 +56,8 @@ import java.time.Instant
 
 private val VALID_EXPIRY = setOf("today", "day", "week")
 
-fun Route.adminRoutes(client: HttpClient) {
-    route("/admin") {
+fun Route.adminRoutes(client: HttpClient, paths: AdminPaths = AdminPaths.LEGACY) {
+    route(paths.notes) {
         // Route-scoped: these JS-free form POSTs are the CSRF-vulnerable surface, and applying
         // the check application-wide would break the cross-origin POST /notes. See plugins/Csrf.kt.
         installAdminCsrf()
@@ -63,7 +65,7 @@ fun Route.adminRoutes(client: HttpClient) {
         get {
             val result = runCatching { NowStore.list(client) }
             call.respondText(
-                renderAdminPage(result.getOrDefault(emptyList()), result.isFailure),
+                renderAdminPage(result.getOrDefault(emptyList()), result.isFailure, paths),
                 ContentType.Text.Html,
             )
         }
@@ -81,7 +83,7 @@ fun Route.adminRoutes(client: HttpClient) {
                     call.application.launch { runCatching { NoteHook.announce(client, entry) } }
                 }
             }
-            call.respondRedirect("/admin")
+            call.respondRedirect(paths.notes)
         }
 
         post("/entries/{id}/delete") {
@@ -93,7 +95,7 @@ fun Route.adminRoutes(client: HttpClient) {
                     call.application.launch { runCatching { NoteHook.retract(client, id) } }
                 }
             }
-            call.respondRedirect("/admin")
+            call.respondRedirect(paths.notes)
         }
     }
 }
@@ -108,7 +110,7 @@ private fun relativeUntil(epochSeconds: Long): String {
     }
 }
 
-private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean): String =
+private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean, paths: AdminPaths): String =
     "<!DOCTYPE html>\n" + createHTML().html {
         attributes["lang"] = "en"
         head {
@@ -119,7 +121,7 @@ private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean): Strin
         }
         body {
             div("wrap") {
-                p("nav") { a(href = "/admin/projects") { +"Projects →" } }
+                p("nav") { a(href = paths.projects) { +"Projects →" } }
                 h1 { +"Recently updated — admin" }
                 p("sub") { +"Publish a short blurb to the /now page. Entries expire automatically." }
 
@@ -129,7 +131,7 @@ private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean): Strin
                     }
                 }
 
-                form(action = "/admin/entries", method = FormMethod.post, classes = "publish") {
+                form(action = "${paths.notes}/entries", method = FormMethod.post, classes = "publish") {
                     textArea {
                         name = "body"
                         attributes["required"] = "required"
@@ -177,7 +179,7 @@ private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean): Strin
                                 }
                                 span("time") { +"expires ${relativeUntil(e.expiresAt)}" }
                             }
-                            form(action = "/admin/entries/${e.id}/delete", method = FormMethod.post, classes = "del") {
+                            form(action = "${paths.notes}/entries/${e.id}/delete", method = FormMethod.post, classes = "del") {
                                 button(type = ButtonType.submit, classes = "danger") {
                                     +"Delete"
                                 }

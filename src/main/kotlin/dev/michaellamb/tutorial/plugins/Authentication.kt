@@ -1,5 +1,6 @@
 /*
- * The Authentication plugin, configured with one named JWT provider.
+ * The Authentication plugin, configured with named JWT providers: `demo-jwt` always, and `cf-access`
+ * when Cloudflare Access verification is configured (see auth/CloudflareAccess.kt).
  *
  * Providers are NAMED, which is the design worth noticing: `authenticate("demo-jwt") { }` selects
  * one by name, so an app can run several schemes side by side (a session for the browser, a bearer
@@ -16,6 +17,8 @@ import dev.michaellamb.tutorial.auth.JWT_REALM
 import dev.michaellamb.tutorial.auth.demoAlgorithm
 import dev.michaellamb.tutorial.errors.ErrorResponse
 import com.auth0.jwt.JWT
+import dev.michaellamb.tutorial.auth.CloudflareAccess
+import dev.michaellamb.tutorial.auth.cloudflareAccess
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -24,8 +27,9 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.response.respond
 
-fun Application.configureAuthentication() {
+fun Application.configureAuthentication(access: CloudflareAccess? = null) {
     install(Authentication) {
+        access?.let { cloudflareAccess(it) }
         jwt("demo-jwt") {
             realm = JWT_REALM
             verifier(

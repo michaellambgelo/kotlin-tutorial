@@ -1,7 +1,12 @@
 package dev.michaellamb.tutorial.plugins
 
 import dev.michaellamb.tutorial.BuildInfo
+import dev.michaellamb.tutorial.admin.AdminPaths
+import dev.michaellamb.tutorial.admin.adminHostFromEnv
+import dev.michaellamb.tutorial.admin.adminHubRoutes
 import dev.michaellamb.tutorial.admin.adminRoutes
+import dev.michaellamb.tutorial.auth.CloudflareAccess
+import dev.michaellamb.tutorial.auth.behindAccess
 import dev.michaellamb.tutorial.auth.jwtDemoRoutes
 import dev.michaellamb.tutorial.admin.projectsAdminRoutes
 import dev.michaellamb.tutorial.health.healthRoutes
@@ -67,9 +72,14 @@ import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
+import io.ktor.server.routing.host
+import io.ktor.server.routing.openapi.hide
 import io.ktor.server.routing.routing
 
-fun Application.configureRouting() {
+fun Application.configureRouting(
+    access: CloudflareAccess? = null,
+    adminHost: String? = adminHostFromEnv(),
+) {
     // `by dependencies` — a property delegate resolving on declared type, registered in
     // plugins/Dependencies.kt. These used to be constructed inline here.
     val noteRepository: NoteRepository by dependencies
@@ -78,6 +88,20 @@ fun Application.configureRouting() {
     val widgetCache: WidgetCache by dependencies
 
     routing {
+        // The admin portal on its own hostname (ADMIN_HOST): hub at /, the two forms at /notes and
+        // /projects. Registered FIRST so that on the admin host these win over the public routes at
+        // the same paths — the public /notes is the JSON API. `hide()` keeps them out of the
+        // generated OpenAPI spec, which would otherwise see two GET /notes and two GET /.
+        adminHost?.let { host ->
+            host(host) {
+                behindAccess(access) {
+                    adminHubRoutes(widgetClient)
+                    adminRoutes(widgetClient, AdminPaths.PORTAL)
+                    projectsAdminRoutes(projectRepository, AdminPaths.PORTAL)
+                }
+            }.hide()
+        }
+
         homeRoutes()
         healthRoutes()
         signageRoutes(widgetClient)
@@ -154,11 +178,14 @@ fun Application.configureRouting() {
             projectsWidget(projectRepository, widgetCache)
         }
 
-        // Admin forms, both gated at the edge by Cloudflare Access (One-time-PIN email policy over
-        // /admin*). The "Recently updated" admin proxies writes to the now-store Worker; the
-        // projects admin writes straight to the local SQLite store on the volume.
-        adminRoutes(widgetClient)
-        projectsAdminRoutes(projectRepository)
+        // Admin forms on the legacy layout, gated at the edge by Cloudflare Access (One-time-PIN
+        // email policy) and, when configured, by the Access token check (auth/CloudflareAccess.kt).
+        // The "Recently updated" admin proxies writes to the now-store Worker; the projects admin
+        // writes straight to the local SQLite store on the volume.
+        behindAccess(access) {
+            adminRoutes(widgetClient)
+            projectsAdminRoutes(projectRepository)
+        }
 
         noteRoutes(noteRepository)
 
