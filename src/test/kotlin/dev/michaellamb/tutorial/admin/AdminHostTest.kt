@@ -190,6 +190,17 @@ class AdminHostTest {
     @Test
     fun `admin host routes stay out of the generated spec`() = testApplication {
         mount()
+        assertSpecHidesPortal()
+    }
+
+    @Test
+    fun `admin host routes stay out of the spec behind the Access layer too`() = testApplication {
+        // Production shape: host -> authenticate -> routes. hide() must reach through the extra node.
+        mount(withAccess = true)
+        assertSpecHidesPortal()
+    }
+
+    private suspend fun ApplicationTestBuilder.assertSpecHidesPortal() {
         val spec = Json.parseToJsonElement(getOn("/swagger/documentation.yaml", "localhost").bodyAsText()).jsonObject
         val paths = spec.getValue("paths").jsonObject
         assertFalse("/projects" in paths, "the portal's /projects must be hidden from the spec")
