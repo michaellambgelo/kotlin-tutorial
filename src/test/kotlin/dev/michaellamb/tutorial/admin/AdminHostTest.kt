@@ -91,7 +91,7 @@ class AdminHostTest {
             configureStatusPages()
             configureSerialization()
             configureHttp(adminHost = ADMIN)
-            configureCors()
+            configureCors(adminHost = ADMIN)
             configureAuthentication(a)
             configureStreaming()
             configureRouting(a, adminHost = ADMIN)
@@ -168,6 +168,22 @@ class AdminHostTest {
             on(ADMIN); header(HttpHeaders.Origin, "http://$ADMIN")
         }
         assertEquals("/notes", note.headers[HttpHeaders.Location])
+    }
+
+    @Test
+    fun `a browser post from the portal's https origin gets through`() = testApplication {
+        // Production shape: the browser sends Origin https://<admin host>, the tunnel delivers plain http.
+        // CORS answered an empty 403 for this until the admin host was on its list.
+        mount()
+        val client = createClient { followRedirects = false }
+        val note = client.submitForm("/notes/entries", parameters { append("body", " ") }) {
+            on(ADMIN); header(HttpHeaders.Origin, "https://$ADMIN")
+        }
+        assertEquals(HttpStatusCode.Found, note.status)
+        val project = client.submitForm("/projects", parameters { append("name", "T"); append("url", "https://t.test") }) {
+            on(ADMIN); header(HttpHeaders.Origin, "https://$ADMIN")
+        }
+        assertEquals(HttpStatusCode.Found, project.status)
     }
 
     @Test
