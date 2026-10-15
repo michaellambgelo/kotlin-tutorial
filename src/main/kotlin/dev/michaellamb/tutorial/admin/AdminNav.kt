@@ -7,6 +7,8 @@
  * Served only on the admin host, behind the same Access check as the hub. `/_nav` is a reserved
  * prefix there: no tunnel path rule may claim it (see the admin.michaellamb.dev coordination repo).
  * If the script fails to load, `<admin-nav>` stays an unknown, empty element and the app is unaffected.
+ * Colours follow prefers-color-scheme; an app with a fixed palette sets `--admin-nav-bg`, `-fg`, `-line` and
+ * `-accent` on the element (custom properties inherit into the shadow root).
  *
  * Kotlin note: the script is a raw string with `$`-free JS so no template escaping is needed; the one
  * substitution is a JSON literal written by Jackson, which also takes care of quoting the labels.
@@ -68,7 +70,9 @@ private val NAV_JS_TEMPLATE = """
           border-bottom: 1px solid var(--line); background: var(--bg); color: var(--fg);
           font: 500 0.9rem/1 -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
           -webkit-overflow-scrolling: touch; scrollbar-width: none;
-          --bg: #ffffff; --fg: #1a1a1a; --line: rgba(127,127,127,0.3); --accent: #1d6fe0; }
+          --d-bg: #ffffff; --d-fg: #1a1a1a; --d-line: rgba(127,127,127,0.3); --d-accent: #1d6fe0;
+          --bg: var(--admin-nav-bg, var(--d-bg)); --fg: var(--admin-nav-fg, var(--d-fg));
+          --line: var(--admin-nav-line, var(--d-line)); --accent: var(--admin-nav-accent, var(--d-accent)); }
     nav::-webkit-scrollbar { display: none; }
     a { flex: none; color: inherit; text-decoration: none; padding: 0.85rem 0.6rem 0.7rem; opacity: 0.7;
         border-bottom: 2px solid transparent; }
@@ -76,7 +80,7 @@ private val NAV_JS_TEMPLATE = """
     a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     a[aria-current="page"] { opacity: 1; font-weight: 650; border-bottom-color: var(--accent); }
     @media (prefers-color-scheme: dark) {
-      nav { --bg: #161616; --fg: #ececec; --line: rgba(160,160,160,0.25); --accent: #5b9bff; }
+      nav { --d-bg: #161616; --d-fg: #ececec; --d-line: rgba(160,160,160,0.25); --d-accent: #5b9bff; }
     }`;
 
   // Longest href that prefixes the path; "/" only matches itself.
