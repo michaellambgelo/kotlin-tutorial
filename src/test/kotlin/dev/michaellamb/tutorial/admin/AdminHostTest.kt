@@ -141,7 +141,7 @@ class AdminHostTest {
         val page = getOn("/projects", ADMIN).bodyAsText()
         assertTrue("action=\"/projects\"" in page, "create form should post to /projects")
         assertTrue("href=\"/notes\"" in page, "nav should link to the portal notes path")
-        assertFalse("/admin" in page, "no legacy path should leak into the portal page")
+        assertFalse(Regex("""(href|action)="/admin""").containsMatchIn(page), "no legacy path should leak into the portal page")
     }
 
     @Test
@@ -206,6 +206,49 @@ class AdminHostTest {
         assertFalse("/projects" in paths, "the portal's /projects must be hidden from the spec")
         val notesGet = paths.getValue("/notes").jsonObject.getValue("get").jsonObject
         assertEquals("get_notes", notesGet.getValue("operationId").jsonPrimitive.content)
+    }
+
+    // ---- shared nav bar ----
+
+    @Test
+    fun `nav script lists every host tool and no LAN-only one`() = testApplication {
+        mount()
+        val response = getOn("/_nav/nav.js", ADMIN)
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Application.JavaScript, response.contentType()?.withoutParameters())
+        val js = response.bodyAsText()
+        assertTrue("customElements.define('admin-nav'" in js)
+        listOf("\"Hub\"" to "\"/\"", "\"Notes\"" to "\"/notes\"", "\"Projects\"" to "\"/projects\"", "\"Embed\"" to "\"/embed/\"")
+            .forEach { (label, href) -> assertTrue(label in js && href in js, "nav should carry $label → $href") }
+        hubLinks().filter { it.lanOnly }.forEach { assertFalse(it.href in js, "LAN-only ${it.label} must not be in the nav") }
+        assertTrue("no-store" in response.headers[HttpHeaders.CacheControl].orEmpty())
+    }
+
+    @Test
+    fun `nav script is behind Access and absent from the public host`() = testApplication {
+        mount(withAccess = true)
+        assertEquals(HttpStatusCode.Forbidden, getOn("/_nav/nav.js", ADMIN).status)
+        assertEquals(HttpStatusCode.OK, getOn("/_nav/nav.js", ADMIN, token()).status)
+        assertEquals(HttpStatusCode.NotFound, getOn("/_nav/nav.js", "localhost").status)
+    }
+
+    @Test
+    fun `portal pages carry the nav bar, legacy pages do not`() = testApplication {
+        mount()
+        listOf("/", "/projects").forEach { path ->
+            val page = getOn(path, ADMIN).bodyAsText()
+            assertTrue("<admin-nav></admin-nav>" in page && "src=\"/_nav/nav.js\"" in page, "portal $path needs the bar")
+        }
+        val legacy = getOn("/admin/projects", "localhost").bodyAsText()
+        assertFalse("admin-nav" in legacy || "/_nav/" in legacy, "legacy layout must not reference the host-scoped script")
+    }
+
+    @Test
+    fun `nav script stays out of the generated spec`() = testApplication {
+        mount(withAccess = true)
+        val paths = Json.parseToJsonElement(getOn("/swagger/documentation.yaml", "localhost").bodyAsText())
+            .jsonObject.getValue("paths").jsonObject
+        assertFalse(paths.keys.any { it.startsWith("/_nav") }, "/_nav must be hidden from the spec")
     }
 
     // ---- Access token check ----

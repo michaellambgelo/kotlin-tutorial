@@ -4,6 +4,7 @@ import dev.michaellamb.tutorial.BuildInfo
 import dev.michaellamb.tutorial.admin.AdminPaths
 import dev.michaellamb.tutorial.admin.adminHostFromEnv
 import dev.michaellamb.tutorial.admin.adminHubRoutes
+import dev.michaellamb.tutorial.admin.adminNavRoutes
 import dev.michaellamb.tutorial.admin.adminRoutes
 import dev.michaellamb.tutorial.auth.CloudflareAccess
 import dev.michaellamb.tutorial.auth.behindAccess
@@ -89,13 +90,14 @@ fun Application.configureRouting(
 
     routing {
         // The admin portal on its own hostname (ADMIN_HOST): hub at /, the two forms at /notes and
-        // /projects. Registered FIRST so that on the admin host these win over the public routes at
+        // /projects, and the shared nav bar's script at /_nav/nav.js (admin/AdminNav.kt). Registered FIRST so that on the admin host these win over the public routes at
         // the same paths — the public /notes is the JSON API. `hide()` keeps them out of the
         // generated OpenAPI spec, which would otherwise see two GET /notes and two GET /.
         adminHost?.let { host ->
             host(host) {
                 behindAccess(access) {
                     adminHubRoutes(widgetClient)
+                    adminNavRoutes()
                     adminRoutes(widgetClient, AdminPaths.PORTAL)
                     projectsAdminRoutes(projectRepository, AdminPaths.PORTAL)
                 }

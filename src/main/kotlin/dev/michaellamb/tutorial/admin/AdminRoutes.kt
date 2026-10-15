@@ -118,8 +118,10 @@ private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean, paths:
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +"now · admin" }
             style { unsafe { +ADMIN_CSS } }
+            adminNavScript(paths)
         }
         body {
+            adminNavBar(paths)
             div("wrap") {
                 p("nav") { a(href = paths.projects) { +"Projects →" } }
                 h1 { +"Recently updated — admin" }

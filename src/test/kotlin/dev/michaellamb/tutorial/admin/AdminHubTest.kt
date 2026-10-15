@@ -48,6 +48,14 @@ class AdminHubTest {
     }
 
     @Test
+    fun `nav links are the hub plus every non-LAN hub link, in order`() {
+        assertEquals(
+            listOf("Hub" to "/", "Notes" to "/notes", "Projects" to "/projects", "Embed" to "/embed/"),
+            navLinks().map { it.label to it.href },
+        )
+    }
+
+    @Test
     fun `an app homelab-bot does not probe gets no dot, not a down dot`() = runBlocking {
         val feed = fetchAppStatus(clientAnswering(feedBody), "http://bot/apps.json")
         assertEquals(HubDot.NONE, dotFor(link("pi-hole"), feed))

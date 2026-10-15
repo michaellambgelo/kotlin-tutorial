@@ -123,8 +123,10 @@ private fun renderProjectsAdmin(projects: List<Project>, editing: Project?, path
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +"projects · admin" }
             style { unsafe { +PROJECTS_ADMIN_CSS } }
+            adminNavScript(paths)
         }
         body {
+            adminNavBar(paths)
             div("wrap") {
                 p("nav") { a(href = paths.notes) { +"← Recently updated" } }
                 h1 { +"Projects — admin" }
@@ -274,5 +276,7 @@ button.danger { background: transparent; color: #d65050; border: 1px solid rgba(
 button.danger:hover { background: rgba(214,80,80,0.12); }
 .move { display: inline; }
 .del { display: inline; }
+/* Phone width: the action row drops below the project instead of pushing the page sideways. */
+@media (max-width: 480px) { .entry { flex-wrap: wrap; } .entry .info { flex-basis: 100%; min-width: 0; } }
 .empty { opacity: 0.6; font-style: italic; }
 """.trimIndent()

@@ -57,7 +57,8 @@ data class AppStatusFeed(val generatedAt: Long = 0, val apps: List<AppStatus> = 
 /**
  * A hub link. [statusName] is the app's `name` in homelab-bot's `admin/AppCatalog.kt` — the join
  * key into `/apps.json`. Rename an app there and its dot here silently disappears, so keep the two
- * in step. Null means homelab-bot doesn't watch it.
+ * in step. Null means homelab-bot doesn't watch it. [navLabel] is the short name in the shared
+ * `<admin-nav>` bar (AdminNav.kt); LAN-only links never appear there.
  */
 data class HubLink(
     val label: String,
@@ -65,14 +66,15 @@ data class HubLink(
     val href: String,
     val lanOnly: Boolean,
     val statusName: String? = null,
+    val navLabel: String? = null,
 )
 
 fun hubLinks(paths: AdminPaths = AdminPaths.PORTAL): List<HubLink> = listOf(
-    HubLink("Recently updated", "Publish and delete /now notes", paths.notes, lanOnly = false),
-    HubLink("Projects", "Curate the /about Projects list", paths.projects, lanOnly = false),
+    HubLink("Recently updated", "Publish and delete /now notes", paths.notes, lanOnly = false, navLabel = "Notes"),
+    HubLink("Projects", "Curate the /about Projects list", paths.projects, lanOnly = false, navLabel = "Projects"),
     HubLink(
         "embed-admin", "discord-embed-builder usage and presence",
-        paths.embed, lanOnly = false, statusName = "embed-admin",
+        paths.embed, lanOnly = false, statusName = "embed-admin", navLabel = "Embed",
     ),
     HubLink(
         "homelab-bot", "Cluster status and ops actions",
@@ -110,7 +112,7 @@ fun Route.adminHubRoutes(
 ) {
     get("/") {
         val feed = fetchAppStatus(client, statusUrl)
-        call.respondText(renderHub(hubLinks(paths), feed), ContentType.Text.Html)
+        call.respondText(renderHub(hubLinks(paths), feed, paths), ContentType.Text.Html)
     }
 }
 
@@ -136,7 +138,7 @@ fun dotFor(link: HubLink, feed: AppStatusFeed?): HubDot {
     }
 }
 
-private fun renderHub(links: List<HubLink>, feed: AppStatusFeed?): String =
+private fun renderHub(links: List<HubLink>, feed: AppStatusFeed?, paths: AdminPaths): String =
     "<!DOCTYPE html>\n" + createHTML().html {
         attributes["lang"] = "en"
         head {
@@ -144,8 +146,10 @@ private fun renderHub(links: List<HubLink>, feed: AppStatusFeed?): String =
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +"admin" }
             style { unsafe { +HUB_CSS } }
+            adminNavScript(paths)
         }
         body {
+            adminNavBar(paths)
             div("wrap") {
                 h1 { +"admin" }
                 p("sub") { +"Every admin tool on the homelab. LAN-only links need the house network or wg0." }
