@@ -72,7 +72,7 @@ fun hubLinks(paths: AdminPaths = AdminPaths.PORTAL): List<HubLink> = listOf(
     HubLink("Projects", "Curate the /about Projects list", paths.projects, lanOnly = false),
     HubLink(
         "embed-admin", "discord-embed-builder usage and presence",
-        "https://embed-admin.michaellamb.dev", lanOnly = false, statusName = "embed-admin",
+        paths.embed, lanOnly = false, statusName = "embed-admin",
     ),
     HubLink(
         "homelab-bot", "Cluster status and ops actions",

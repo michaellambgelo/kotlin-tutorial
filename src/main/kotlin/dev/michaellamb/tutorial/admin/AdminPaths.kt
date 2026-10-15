@@ -12,10 +12,12 @@
  */
 package dev.michaellamb.tutorial.admin
 
-data class AdminPaths(val notes: String, val projects: String) {
+data class AdminPaths(val notes: String, val projects: String, val embed: String) {
     companion object {
-        val LEGACY = AdminPaths(notes = "/admin", projects = "/admin/projects")
-        val PORTAL = AdminPaths(notes = "/notes", projects = "/projects")
+        // embed-admin is served by node2 at admin.michaellamb.dev/embed/, never by this service, so the legacy
+        // host links to it absolutely: a relative /embed/ there would land on kotlin-tutorial, which has no such path.
+        val LEGACY = AdminPaths(notes = "/admin", projects = "/admin/projects", embed = "https://admin.michaellamb.dev/embed/")
+        val PORTAL = AdminPaths(notes = "/notes", projects = "/projects", embed = "/embed/")
     }
 }
 

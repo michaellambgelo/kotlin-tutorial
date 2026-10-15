@@ -39,6 +39,15 @@ class AdminHubTest {
     }
 
     @Test
+    fun `embed-admin link resolves to the portal path from either layout`() {
+        assertEquals("/embed/", hubLinks(AdminPaths.PORTAL).single { it.statusName == "embed-admin" }.href)
+        assertEquals(
+            "https://admin.michaellamb.dev/embed/",
+            hubLinks(AdminPaths.LEGACY).single { it.statusName == "embed-admin" }.href,
+        )
+    }
+
+    @Test
     fun `an app homelab-bot does not probe gets no dot, not a down dot`() = runBlocking {
         val feed = fetchAppStatus(clientAnswering(feedBody), "http://bot/apps.json")
         assertEquals(HubDot.NONE, dotFor(link("pi-hole"), feed))
