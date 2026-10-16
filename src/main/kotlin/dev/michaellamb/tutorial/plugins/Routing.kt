@@ -6,6 +6,7 @@ import dev.michaellamb.tutorial.admin.adminHostFromEnv
 import dev.michaellamb.tutorial.admin.adminHubRoutes
 import dev.michaellamb.tutorial.admin.adminNavRoutes
 import dev.michaellamb.tutorial.admin.adminRoutes
+import dev.michaellamb.tutorial.admin.legacyAdminRedirects
 import dev.michaellamb.tutorial.auth.CloudflareAccess
 import dev.michaellamb.tutorial.auth.behindAccess
 import dev.michaellamb.tutorial.auth.jwtDemoRoutes
@@ -180,14 +181,9 @@ fun Application.configureRouting(
             projectsWidget(projectRepository, widgetCache)
         }
 
-        // Admin forms on the legacy layout, gated at the edge by Cloudflare Access (One-time-PIN
-        // email policy) and, when configured, by the Access token check (auth/CloudflareAccess.kt).
-        // The "Recently updated" admin proxies writes to the now-store Worker; the projects admin
-        // writes straight to the local SQLite store on the volume.
-        behindAccess(access) {
-            adminRoutes(widgetClient)
-            projectsAdminRoutes(projectRepository)
-        }
+        // The old /admin and /admin/projects URLs: 301 to the admin host, anything else under
+        // /admin is a 404 (admin/LegacyAdminRedirects.kt). Hidden from the spec like the portal.
+        adminHost?.let { legacyAdminRedirects(it).hide() }
 
         noteRoutes(noteRepository)
 

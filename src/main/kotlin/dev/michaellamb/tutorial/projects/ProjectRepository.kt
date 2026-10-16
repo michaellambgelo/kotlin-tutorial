@@ -15,7 +15,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-// Exposed DSL repository backing /widgets/projects and /admin/projects. Each query method is a
+// Exposed DSL repository backing /widgets/projects and the Projects admin. Each query method is a
 // suspended transaction on Dispatchers.IO (blocking SQLite JDBC off Netty's event loop), mirroring
 // NoteRepository. The list is small and curated, so reorder/create compute max/neighbour positions
 // in memory rather than with SQL window functions — clearer, and the row count is a handful.

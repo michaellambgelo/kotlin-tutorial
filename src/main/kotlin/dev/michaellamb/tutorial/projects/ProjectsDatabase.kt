@@ -7,7 +7,7 @@ import org.sqlite.SQLiteConfig
 import org.sqlite.SQLiteDataSource
 import java.io.File
 
-// Owns the SQLite connection + schema for /admin/projects, in its own file (projects.db) alongside
+// Owns the SQLite connection + schema for the Projects admin, in its own file (projects.db) alongside
 // notes.db on the same mounted volume. A separate database — rather than a second table inside
 // notes.db — keeps this feature a faithful copy of the notes persistence pattern (own table, own
 // Database, own env-overridable path), which is the point of this pedagogical repo. connect() is

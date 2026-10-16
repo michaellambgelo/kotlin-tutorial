@@ -39,12 +39,8 @@ class AdminHubTest {
     }
 
     @Test
-    fun `embed-admin link resolves to the portal path from either layout`() {
+    fun `embed-admin link resolves to the portal path`() {
         assertEquals("/embed/", hubLinks(AdminPaths.PORTAL).single { it.statusName == "embed-admin" }.href)
-        assertEquals(
-            "https://admin.michaellamb.dev/embed/",
-            hubLinks(AdminPaths.LEGACY).single { it.statusName == "embed-admin" }.href,
-        )
     }
 
     @Test

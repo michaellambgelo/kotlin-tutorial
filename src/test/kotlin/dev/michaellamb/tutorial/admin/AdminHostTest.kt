@@ -144,12 +144,41 @@ class AdminHostTest {
         assertFalse(Regex("""(href|action)="/admin""").containsMatchIn(page), "no legacy path should leak into the portal page")
     }
 
+    // ---- legacy /admin URLs ----
+
     @Test
-    fun `legacy layout is unchanged`() = testApplication {
+    fun `legacy admin URLs redirect permanently to the admin host, keeping the query`() = testApplication {
         mount()
-        val page = getOn("/admin/projects", "localhost").bodyAsText()
-        assertTrue("action=\"/admin/projects\"" in page)
-        assertTrue("href=\"/admin\"" in page)
+        val client = createClient { followRedirects = false }
+        listOf(
+            "/admin" to "https://$ADMIN/notes",
+            "/admin/projects" to "https://$ADMIN/projects",
+            "/admin/projects?edit=7" to "https://$ADMIN/projects?edit=7",
+        ).forEach { (from, to) ->
+            val response = client.get(from) { on("localhost") }
+            assertEquals(HttpStatusCode.MovedPermanently, response.status, from)
+            assertEquals(to, response.headers[HttpHeaders.Location], from)
+        }
+    }
+
+    @Test
+    fun `legacy redirects need no Access token`() = testApplication {
+        mount(withAccess = true)
+        val client = createClient { followRedirects = false }
+        assertEquals(HttpStatusCode.MovedPermanently, client.get("/admin/projects") { on("localhost") }.status)
+    }
+
+    @Test
+    fun `legacy form posts and other admin paths are 404`() = testApplication {
+        mount()
+        val client = createClient { followRedirects = false }
+        listOf("/admin", "/admin/projects", "/admin/entries", "/admin/projects/7/delete").forEach { path ->
+            val response = client.submitForm(path, parameters { append("name", "x") }) {
+                on("localhost"); header(HttpHeaders.Origin, "http://localhost")
+            }
+            assertEquals(HttpStatusCode.NotFound, response.status, "POST $path")
+        }
+        assertEquals(HttpStatusCode.NotFound, client.get("/admin/entries") { on("localhost") }.status)
     }
 
     @Test
@@ -220,6 +249,7 @@ class AdminHostTest {
         val spec = Json.parseToJsonElement(getOn("/swagger/documentation.yaml", "localhost").bodyAsText()).jsonObject
         val paths = spec.getValue("paths").jsonObject
         assertFalse("/projects" in paths, "the portal's /projects must be hidden from the spec")
+        assertFalse(paths.keys.any { it.startsWith("/admin") }, "the legacy redirects must be hidden from the spec")
         val notesGet = paths.getValue("/notes").jsonObject.getValue("get").jsonObject
         assertEquals("get_notes", notesGet.getValue("operationId").jsonPrimitive.content)
     }
@@ -249,14 +279,12 @@ class AdminHostTest {
     }
 
     @Test
-    fun `portal pages carry the nav bar, legacy pages do not`() = testApplication {
+    fun `portal pages carry the nav bar`() = testApplication {
         mount()
         listOf("/", "/projects").forEach { path ->
             val page = getOn(path, ADMIN).bodyAsText()
             assertTrue("<admin-nav></admin-nav>" in page && "src=\"/_nav/nav.js\"" in page, "portal $path needs the bar")
         }
-        val legacy = getOn("/admin/projects", "localhost").bodyAsText()
-        assertFalse("admin-nav" in legacy || "/_nav/" in legacy, "legacy layout must not reference the host-scoped script")
     }
 
     @Test
@@ -270,10 +298,9 @@ class AdminHostTest {
     // ---- Access token check ----
 
     @Test
-    fun `valid Access token is let through on both layouts`() = testApplication {
+    fun `valid Access token is let through`() = testApplication {
         mount(withAccess = true)
         assertEquals(HttpStatusCode.OK, getOn("/projects", ADMIN, token()).status)
-        assertEquals(HttpStatusCode.OK, getOn("/admin/projects", "localhost", token()).status)
     }
 
     @Test
@@ -289,8 +316,7 @@ class AdminHostTest {
             "wrong aud" to token(aud = "some-other-app"),
             "wrong iss" to token(issuer = "https://evil.cloudflareaccess.com"),
         ).forEach { (case, jwt) ->
-            assertEquals(HttpStatusCode.Forbidden, getOn("/projects", ADMIN, jwt).status, "portal: $case")
-            assertEquals(HttpStatusCode.Forbidden, getOn("/admin/projects", "localhost", jwt).status, "legacy: $case")
+            assertEquals(HttpStatusCode.Forbidden, getOn("/projects", ADMIN, jwt).status, case)
         }
     }
 

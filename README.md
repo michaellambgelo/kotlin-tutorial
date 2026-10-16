@@ -23,7 +23,7 @@ Deployed to `node5` of the homelab Pi cluster, reachable at `https://kotlin-tuto
 | `GET /htmx` | The same interaction as the home page's Run buttons, with no hand-written JavaScript |
 | `GET /stream/now` | The /now digest over Server-Sent Events, fed by a cold `Flow` |
 | `GET /ws/now` | The WebSocket sibling of `/stream/now` |
-| `POST /demo-auth/token` | Mints a demo JWT. These routes protect nothing — the real `/admin` gate is Cloudflare Access |
+| `POST /demo-auth/token` | Mints a demo JWT. These routes protect nothing — the real admin, on admin.michaellamb.dev, is gated by Cloudflare Access |
 
 ### Language tour (`/tour/*`)
 
@@ -89,17 +89,17 @@ Server-rendered HTML fragments consumed by the blog's `/now.html` and `/cluster.
 
 Unconfigured widgets degrade to a non-fatal "not configured" / "unavailable" fragment, so the rest of the app keeps working.
 
-### Admin (`/admin`)
+### Admin (`admin.michaellamb.dev`)
 
-Publish/delete entries for the "Recently updated" feed (and `/admin/projects` for the Projects list). Gated at the edge by **Cloudflare Access** (email one-time-PIN) and in-app by verifying Access's `Cf-Access-Jwt-Assertion` token; open locally for dev. Writes are proxied to the now-store Worker with the Access service token.
+Publish/delete entries for the "Recently updated" feed (`/notes`) and curate the Projects list (`/projects`), with a hub at `/` linking every admin tool. Served only on the admin host (`ADMIN_HOST`). Gated at the edge by **Cloudflare Access** (email one-time-PIN) and in-app by verifying Access's `Cf-Access-Jwt-Assertion` token; open locally for dev. Writes are proxied to the now-store Worker with the Access service token. Locally: `ADMIN_HOST=admin.localhost ./gradlew run`, then open `http://admin.localhost:8080/`.
 
-The same forms are also served on the admin host (`ADMIN_HOST`, i.e. `admin.michaellamb.dev`) as `/notes` and `/projects`, with a hub at `/` linking every admin tool. Locally: `ADMIN_HOST=admin.localhost ./gradlew run`, then open `http://admin.localhost:8080/`.
-
-| Method | Path | |
+| Method | Path (admin host) | |
 |---|---|---|
-| GET | `/admin` | form listing current entries |
-| POST | `/admin/entries` | publish — form fields `body`, `url?`, `expiry` (`today`/`day`/`week`) |
-| POST | `/admin/entries/{id}/delete` | delete an entry |
+| GET | `/notes` | form listing current entries |
+| POST | `/notes/entries` | publish — form fields `body`, `url?`, `expiry` (`today`/`day`/`week`) |
+| POST | `/notes/entries/{id}/delete` | delete an entry |
+
+The old `kotlin-tutorial.michaellamb.dev/admin` and `/admin/projects` answer **301** to `/notes` and `/projects` on the admin host (query string kept); every other `/admin` request is a 404.
 
 ### Health
 

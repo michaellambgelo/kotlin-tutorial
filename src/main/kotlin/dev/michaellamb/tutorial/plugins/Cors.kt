@@ -11,7 +11,7 @@ import dev.michaellamb.tutorial.admin.adminHostFromEnv
  * [adminHost] is the portal's own origin. Its form POSTs carry `Origin: https://<adminHost>`, and behind the
  * tunnel the request reaches us as plain http, so CORS doesn't recognise it as same-origin and, with the host
  * missing from this list, answers an empty 403 before the route's CSRF check runs. Same reason
- * kotlin-tutorial.michaellamb.dev is listed: that's what lets the legacy /admin forms post.
+ * kotlin-tutorial.michaellamb.dev is listed: Swagger UI's Try-It-Out posts from that origin.
  */
 fun Application.configureCors(adminHost: String? = adminHostFromEnv()) {
     install(CORS) {

@@ -1,6 +1,6 @@
 /*
  * Admin form for the curated /about "Projects" list, served by Ktor at
- * /admin/projects (and /projects on the admin host — see AdminPaths) and used to create/edit/delete/reorder the records that
+ * /projects on the admin host (see AdminPaths) and used to create/edit/delete/reorder the records that
  * /widgets/projects renders.
  *
  * Like AdminRoutes (the "Recently updated" admin), access is enforced at the EDGE
@@ -57,7 +57,7 @@ import java.util.UUID
 private val STATUS_BASE: String =
     System.getenv("UPTIME_KUMA_BASE_URL")?.takeIf { it.isNotBlank() } ?: "https://status.michaellamb.dev"
 
-fun Route.projectsAdminRoutes(repo: ProjectRepository, paths: AdminPaths = AdminPaths.LEGACY) {
+fun Route.projectsAdminRoutes(repo: ProjectRepository, paths: AdminPaths = AdminPaths.PORTAL) {
     route(paths.projects) {
         // Route-scoped: these JS-free form POSTs are the CSRF-vulnerable surface, and applying
         // the check application-wide would break the cross-origin POST /notes. See plugins/Csrf.kt.
@@ -123,10 +123,10 @@ private fun renderProjectsAdmin(projects: List<Project>, editing: Project?, path
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +"projects · admin" }
             style { unsafe { +PROJECTS_ADMIN_CSS } }
-            adminNavScript(paths)
+            adminNavScript()
         }
         body {
-            adminNavBar(paths)
+            adminNavBar()
             div("wrap") {
                 p("nav") { a(href = paths.notes) { +"← Recently updated" } }
                 h1 { +"Projects — admin" }

@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.UUID
 
 // A curated entry for the "Projects" section of the blog's /about page, rendered by
-// /widgets/projects and maintained at /admin/projects. Plain Jackson data class (like
+// /widgets/projects and maintained at /projects on the admin host. Plain Jackson data class (like
 // widgets.NowEntry) — there is no JSON REST surface for projects, so it carries no @Serializable:
 // the widget renders HTML and the admin posts plain HTML forms. ProjectRepository maps rows by hand.
 //

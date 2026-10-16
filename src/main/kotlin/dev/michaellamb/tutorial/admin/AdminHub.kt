@@ -146,10 +146,10 @@ private fun renderHub(links: List<HubLink>, feed: AppStatusFeed?, paths: AdminPa
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +"admin" }
             style { unsafe { +HUB_CSS } }
-            adminNavScript(paths)
+            adminNavScript()
         }
         body {
-            adminNavBar(paths)
+            adminNavBar()
             div("wrap") {
                 h1 { +"admin" }
                 p("sub") { +"Every admin tool on the homelab. LAN-only links need the house network or wg0." }

@@ -2,7 +2,7 @@
  * CSRF protection for the admin forms.
  *
  * Pedagogical focus: a **route-scoped plugin**. Unlike CallLogging or StatusPages, `CSRF` is a
- * `RouteScopedPlugin`, so `install(CSRF)` inside a `route("/admin") { }` block applies to that
+ * `RouteScopedPlugin`, so `install(CSRF)` inside a `route(...) { }` block applies to that
  * subtree and nothing else. That distinction matters here: applying it application-wide would break
  * `POST /notes`, which is called cross-origin by the blog and by Swagger's "Try it out".
  *
@@ -25,7 +25,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 
 /**
- * Installs CSRF checks on the surrounding route. Call this *inside* the `/admin` subtree.
+ * Installs CSRF checks on the surrounding route. Call this *inside* each admin form subtree.
  *
  * `originMatchesHost()` compares the Origin header against the request's own Host, which is the
  * right check for same-origin forms and needs no hidden token field, no session, and no JS.

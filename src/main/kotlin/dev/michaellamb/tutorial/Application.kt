@@ -1,5 +1,6 @@
 package dev.michaellamb.tutorial
 
+import dev.michaellamb.tutorial.admin.adminHostFromEnv
 import dev.michaellamb.tutorial.auth.CloudflareAccess
 import dev.michaellamb.tutorial.plugins.configureAuthentication
 import dev.michaellamb.tutorial.plugins.configureCors
@@ -18,7 +19,14 @@ fun main(args: Array<String>) {
     EngineMain.main(args)
 }
 
-fun Application.module() {
+fun Application.module() = moduleWith(adminHost = adminHostFromEnv())
+
+/**
+ * [module] with the admin hostname passed in rather than read from `ADMIN_HOST`, so tests can run
+ * the real install list with the admin portal on. A separate name, not an overload or a default
+ * argument, because application.yaml loads `module` by name.
+ */
+fun Application.moduleWith(adminHost: String?) {
     // Read once and handed to both plugins that need it, so the provider and the routes that use it
     // can't disagree about whether the Access check is on.
     val access = CloudflareAccess.fromEnv()
@@ -28,9 +36,9 @@ fun Application.module() {
     // Install before routing so it wraps every handler's failures.
     configureStatusPages()
     configureSerialization()
-    configureHttp()
-    configureCors()
+    configureHttp(adminHost = adminHost)
+    configureCors(adminHost = adminHost)
     configureAuthentication(access)
     configureStreaming()
-    configureRouting(access)
+    configureRouting(access, adminHost = adminHost)
 }

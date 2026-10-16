@@ -538,7 +538,7 @@ internal val healthCard = EndpointCard(
 private val uncardedSummaries: Map<Pair<String, String>, String> = mapOf(
     ("GET" to "/") to "This page — a kotlinx.html DSL document listing every route.",
     ("GET" to "/signage") to "Full-page TV view of the /now digest, cast to a display via homelab-bot.",
-    ("POST" to "/demo-auth/token") to "Mint a demo JWT. Guards nothing — the real /admin is behind Cloudflare Access.",
+    ("POST" to "/demo-auth/token") to "Mint a demo JWT. Guards nothing — the real admin is admin.michaellamb.dev, behind Cloudflare Access.",
     ("GET" to "/demo-auth/decode") to "Read a JWT's claims WITHOUT the secret — signing is integrity, not confidentiality.",
     ("GET" to "/demo-auth/whoami") to "Requires a Bearer token; shows the validated principal.",
     ("GET" to "/htmx") to "htmx demo — the home page's Run buttons, with the JavaScript deleted.",
@@ -555,14 +555,6 @@ private val uncardedSummaries: Map<Pair<String, String>, String> = mapOf(
     ("GET" to "/notes/{id}") to "Fetch one note by id.",
     ("PUT" to "/notes/{id}") to "Update a note's title and/or body.",
     ("DELETE" to "/notes/{id}") to "Delete a note.",
-    ("GET" to "/admin") to "Admin form for the curated \"Recently updated\" feed. Gated by Cloudflare Access.",
-    ("POST" to "/admin/entries") to "Publish a \"Recently updated\" entry to the now-store Worker.",
-    ("POST" to "/admin/entries/{id}/delete") to "Delete a \"Recently updated\" entry and retract its Discord embed.",
-    ("GET" to "/admin/projects") to "Admin form for the Projects list. Gated by Cloudflare Access.",
-    ("POST" to "/admin/projects") to "Create a Projects record.",
-    ("POST" to "/admin/projects/{id}/update") to "Update a Projects record.",
-    ("POST" to "/admin/projects/{id}/delete") to "Delete a Projects record.",
-    ("POST" to "/admin/projects/{id}/move") to "Reorder a Projects record by swapping its position with its neighbour.",
 )
 
 /**
@@ -621,7 +613,6 @@ internal fun tagFor(specPath: String): String = when {
     specPath.startsWith("/demo-auth") -> "Auth"
     specPath.startsWith("/widgets/") -> "Widgets"
     specPath.startsWith("/notes") -> "Notes"
-    specPath.startsWith("/admin") -> "Admin"
     else -> "Service" // /, /health, /signage
 }
 
@@ -634,7 +625,6 @@ internal val tagOrder: List<Pair<String, String>> = listOf(
     "Streams" to "Long-lived connections: Server-Sent Events and WebSockets over a cold Flow.",
     "Service" to "The home page, liveness check, and the TV signage view.",
     "Auth" to "A JWT demonstration that protects nothing — the real gate is Cloudflare Access.",
-    "Admin" to "Publish/edit forms, gated at the edge by Cloudflare Access.",
 )
 
 /**

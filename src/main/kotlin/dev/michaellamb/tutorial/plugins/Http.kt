@@ -42,7 +42,7 @@ fun Application.configureHttp(adminHost: String? = adminHostFromEnv()) {
             val path = call.request.local.uri.substringBefore('?')
             when {
                 // Never let a browser hold onto an admin form or a mutation's result. On the admin
-                // host that's every path; on the public host only /admin* (its /notes is the API).
+                // host that's every path; on the public host only the /admin* redirects (its /notes is the API).
                 path.startsWith("/admin") || call.request.host().equals(adminHost, ignoreCase = true) ->
                     CachingOptions(CacheControl.NoStore(null))
                 // Matches WidgetCache's own 60s TTL — the blog embeds these on every page view.

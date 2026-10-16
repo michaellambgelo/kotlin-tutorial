@@ -5,8 +5,7 @@
  * request that never touches the edge — anyone on the LAN or wg0 can reach node5:8080 directly. So
  * every request Access forwards carries a signed `Cf-Access-Jwt-Assertion`, and the admin routes
  * verify it: RS256 against the team's published keys, issuer = the team domain, audience = the
- * Access application's AUD. One Access app covers both kotlin-tutorial.michaellamb.dev/admin and
- * admin.michaellamb.dev, so one AUD covers both layouts.
+ * Access application's AUD (the `admin.michaellamb.dev` app).
  *
  * This is NOT a second login scheme (see JwtDemo.kt for why that would be harmful): nobody signs in
  * here. It only checks that the edge's own token is present and genuine.

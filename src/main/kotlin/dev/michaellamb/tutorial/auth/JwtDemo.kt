@@ -1,7 +1,7 @@
 /*
  * A JWT demonstration at /demo-auth — deliberately NOT how this service is actually secured.
  *
- * Read this first: the real `/admin*` surface is gated at the edge by Cloudflare Access, which
+ * Read this first: the real admin (admin.michaellamb.dev) is gated at the edge by Cloudflare Access, which
  * authenticates the user before the request ever reaches Ktor. Adding a second, in-app auth scheme
  * over the same routes would be worse than useless — two systems disagreeing about who is signed
  * in. So these routes protect nothing real. They exist because "how does bearer auth work in Ktor"
@@ -101,7 +101,7 @@ fun Route.jwtDemoRoutes() {
                         "user" to principal?.getClaim("user", String::class),
                         "expires_at" to principal?.expiresAt?.toInstant()?.toString(),
                         "why_this_is_a_demo" to
-                            "the real /admin routes are gated by Cloudflare Access before Ktor sees them",
+                            "the real admin routes are gated by Cloudflare Access before Ktor sees them",
                     ),
                 )
             }

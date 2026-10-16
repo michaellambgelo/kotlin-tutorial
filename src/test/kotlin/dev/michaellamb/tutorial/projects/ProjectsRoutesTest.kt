@@ -1,6 +1,7 @@
 package dev.michaellamb.tutorial.projects
 
 import dev.michaellamb.tutorial.module
+import dev.michaellamb.tutorial.moduleWith
 import io.ktor.client.request.get
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
@@ -54,8 +55,8 @@ class ProjectsRoutesTest {
 
     @Test
     fun `admin page renders the form and current projects`() = testApplication {
-        application { module() }
-        val resp = client.get("/admin/projects")
+        application { moduleWith(adminHost = ADMIN) }
+        val resp = client.get("/projects") { header(HttpHeaders.Host, ADMIN) }
         assertEquals(HttpStatusCode.OK, resp.status)
         val html = resp.bodyAsText()
         assertTrue(html.contains("Projects — admin"))
@@ -65,10 +66,10 @@ class ProjectsRoutesTest {
 
     @Test
     fun `admin create persists a project and it shows on the page`() = testApplication {
-        application { module() }
+        application { moduleWith(adminHost = ADMIN) }
         val client = createClient { followRedirects = false }
 
-        val create = client.post("/admin/projects") {
+        val create = client.post("/projects") {
             sameOriginForm()
             setBody(
                 listOf(
@@ -81,7 +82,7 @@ class ProjectsRoutesTest {
         }
         assertEquals(HttpStatusCode.Found, create.status, "create redirects after the POST")
 
-        val page = client.get("/admin/projects").bodyAsText()
+        val page = client.get("/projects") { header(HttpHeaders.Host, ADMIN) }.bodyAsText()
         assertTrue(page.contains("demo.michaellamb.dev"), "created project appears in the admin list")
 
         // and it surfaces on the public widget too
@@ -91,31 +92,34 @@ class ProjectsRoutesTest {
 
     @Test
     fun `admin create with a blank name is rejected`() = testApplication {
-        application { module() }
+        application { moduleWith(adminHost = ADMIN) }
         val client = createClient { followRedirects = false }
 
-        client.post("/admin/projects") {
+        client.post("/projects") {
             sameOriginForm()
             setBody(listOf("name" to "", "url" to "https://rejected.example").formUrlEncode())
         }
 
         // toProjectInput() returned null for the blank name, so nothing was persisted
-        val admin = client.get("/admin/projects").bodyAsText()
+        val admin = client.get("/projects") { header(HttpHeaders.Host, ADMIN) }.bodyAsText()
         assertTrue(!admin.contains("rejected.example"), "blank-name submission is not saved")
     }
 
     private companion object {
+        /** The admin forms only exist on the admin host. */
+        const val ADMIN = "admin.test"
+
         /**
          * Mark a request as the same-origin HTML form POST a browser would actually send.
          *
-         * plugins/Csrf.kt installs CSRF with `originMatchesHost()` on the /admin subtree, and that
+         * plugins/Csrf.kt installs CSRF with `originMatchesHost()` on the admin forms, and that
          * check rejects a request carrying no Origin header at all — which is exactly the shape of
          * a scripted POST. Browsers do send Origin on form submissions, so the test has to as well.
          */
         fun HttpRequestBuilder.sameOriginForm() {
             contentType(ContentType.Application.FormUrlEncoded)
-            header(HttpHeaders.Origin, "http://localhost")
-            header(HttpHeaders.Host, "localhost")
+            header(HttpHeaders.Origin, "http://$ADMIN")
+            header(HttpHeaders.Host, ADMIN)
         }
     }
 }

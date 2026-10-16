@@ -1,11 +1,10 @@
 /*
  * Admin form for the "Recently updated by Michael" feed, served by Ktor at
- * /admin (and at /notes on the admin host — see AdminPaths) and used to
+ * /notes on the admin host (see AdminPaths) and used to
  * create/delete entries in the now-store Worker.
  *
  * Access control is enforced at the EDGE by Cloudflare Access: a self-hosted
- * Access application covering `kotlin-tutorial.michaellamb.dev/admin` and
- * `admin.michaellamb.dev` with a One-time-PIN email policy — and again in-app,
+ * Access application for `admin.michaellamb.dev` with a One-time-PIN email policy — and again in-app,
  * where Routing.kt mounts these behind the Access token check (see
  * auth/CloudflareAccess.kt). Locally there is neither, so the forms are open for
  * dev. The write/delete calls are proxied to the now-store Worker via NowStore,
@@ -56,7 +55,7 @@ import java.time.Instant
 
 private val VALID_EXPIRY = setOf("today", "day", "week")
 
-fun Route.adminRoutes(client: HttpClient, paths: AdminPaths = AdminPaths.LEGACY) {
+fun Route.adminRoutes(client: HttpClient, paths: AdminPaths = AdminPaths.PORTAL) {
     route(paths.notes) {
         // Route-scoped: these JS-free form POSTs are the CSRF-vulnerable surface, and applying
         // the check application-wide would break the cross-origin POST /notes. See plugins/Csrf.kt.
@@ -118,10 +117,10 @@ private fun renderAdminPage(entries: List<NowEntry>, loadFailed: Boolean, paths:
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +"now · admin" }
             style { unsafe { +ADMIN_CSS } }
-            adminNavScript(paths)
+            adminNavScript()
         }
         body {
-            adminNavBar(paths)
+            adminNavBar()
             div("wrap") {
                 p("nav") { a(href = paths.projects) { +"Projects →" } }
                 h1 { +"Recently updated — admin" }

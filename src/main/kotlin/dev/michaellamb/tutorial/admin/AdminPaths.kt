@@ -1,28 +1,22 @@
 /*
- * Where the admin forms are mounted. The same handlers serve two layouts while the admin moves to
- * its own hostname (see admin.michaellamb.dev, the coordination repo):
+ * Where the admin forms are mounted: admin.michaellamb.dev/notes and /projects, host-scoped by
+ * ADMIN_HOST (see admin.michaellamb.dev, the coordination repo). The old
+ * kotlin-tutorial.michaellamb.dev/admin layout is gone; LegacyAdminRedirects.kt sends it here.
  *
- *   kotlin-tutorial.michaellamb.dev/admin, /admin/projects   — LEGACY, kept during the transition
- *   admin.michaellamb.dev/notes, /projects                   — PORTAL, host-scoped (ADMIN_HOST)
- *
- * Every link, form action and redirect in admin/ is built from one of these, never a literal, so a
- * page always posts back to — and lands on — the host and path it was served from. That matters
- * twice over: CSRF's originMatchesHost() wants a same-host POST, and a hard-coded "/admin" on the
- * admin host would bounce a user onto a path that host doesn't serve.
+ * Every link, form action and redirect in admin/ is built from these, never a literal. CSRF's
+ * originMatchesHost() wants a same-host POST, and a hard-coded path would drift from the mount.
  */
 package dev.michaellamb.tutorial.admin
 
 data class AdminPaths(val notes: String, val projects: String, val embed: String) {
     companion object {
-        // embed-admin is served by node2 at admin.michaellamb.dev/embed/, never by this service, so the legacy
-        // host links to it absolutely: a relative /embed/ there would land on kotlin-tutorial, which has no such path.
-        val LEGACY = AdminPaths(notes = "/admin", projects = "/admin/projects", embed = "https://admin.michaellamb.dev/embed/")
+        // embed-admin is served by node2 at /embed/ on the same host, never by this service.
         val PORTAL = AdminPaths(notes = "/notes", projects = "/projects", embed = "/embed/")
     }
 }
 
 /**
- * The admin hostname from `ADMIN_HOST`, or null when unset (then only the legacy layout exists).
+ * The admin hostname from `ADMIN_HOST`, or null when unset (then no admin forms are served at all).
  *
  * Hostname only: a port is accepted and dropped, because Ktor's host() selector and
  * `request.host()` compare the Host header *without* its port. So `admin.localhost:8080` and

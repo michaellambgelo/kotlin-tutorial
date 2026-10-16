@@ -7,7 +7,7 @@
  * token for an API, basic auth for a health probe) and each route picks the one it wants. An
  * unnamed provider becomes the default.
  *
- * See auth/JwtDemo.kt for why this guards a demo route rather than /admin.
+ * See auth/JwtDemo.kt for why this guards a demo route rather than the admin forms.
  */
 package dev.michaellamb.tutorial.plugins
 

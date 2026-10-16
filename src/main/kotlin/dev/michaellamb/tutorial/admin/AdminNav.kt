@@ -46,16 +46,13 @@ fun Route.adminNavRoutes() {
     }
 }
 
-/** The bar only exists on the portal layout: the script is host-scoped and would 404 on the legacy host. */
-fun HEAD.adminNavScript(paths: AdminPaths) {
-    if (paths != AdminPaths.PORTAL) return
+fun HEAD.adminNavScript() {
     script(src = NAV_SCRIPT_PATH) { attributes["defer"] = "defer" }
     // Pull the bar flush to the edges of these pages' padded body (2rem 1rem).
     style { unsafe { +"admin-nav { display: block; margin: -2rem -1rem 1.5rem; }" } }
 }
 
-fun BODY.adminNavBar(paths: AdminPaths) {
-    if (paths != AdminPaths.PORTAL) return
+fun BODY.adminNavBar() {
     unsafe { +"<admin-nav></admin-nav>" }
 }
 

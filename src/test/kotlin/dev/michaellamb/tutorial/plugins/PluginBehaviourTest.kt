@@ -1,6 +1,7 @@
 package dev.michaellamb.tutorial.plugins
 
 import dev.michaellamb.tutorial.module
+import dev.michaellamb.tutorial.moduleWith
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -75,13 +76,13 @@ class PluginBehaviourTest {
 
     @Test
     fun `widgets are cacheable and admin pages are not`() = testApplication {
-        application { module() }
+        application { moduleWith(adminHost = "admin.test") }
 
         val widget = client.get("/widgets/projects").headers[HttpHeaders.CacheControl]
         assertNotNull(widget)
         assertTrue(widget.contains("max-age=60"), "widget should advertise the 60s TTL, got: $widget")
 
-        val admin = client.get("/admin/projects").headers[HttpHeaders.CacheControl]
+        val admin = client.get("/projects") { header(HttpHeaders.Host, "admin.test") }.headers[HttpHeaders.CacheControl]
         assertEquals("no-store", admin, "admin pages must never be cached")
     }
 
@@ -89,21 +90,22 @@ class PluginBehaviourTest {
 
     @Test
     fun `admin form posts require a matching Origin`() = testApplication {
-        application { module() }
+        application { moduleWith(adminHost = "admin.test") }
         val client = createClient { followRedirects = false }
 
         // No Origin: the shape of a scripted POST, not a browser form submission.
-        val noOrigin = client.post("/admin/projects") {
+        val noOrigin = client.post("/projects") {
             contentType(ContentType.Application.FormUrlEncoded)
+            header(HttpHeaders.Host, "admin.test")
             setBody("name=x")
         }
         assertEquals(HttpStatusCode.Forbidden, noOrigin.status)
 
         // An Origin belonging to someone else.
-        val foreignOrigin = client.post("/admin/projects") {
+        val foreignOrigin = client.post("/projects") {
             contentType(ContentType.Application.FormUrlEncoded)
             header(HttpHeaders.Origin, "https://evil.example")
-            header(HttpHeaders.Host, "localhost")
+            header(HttpHeaders.Host, "admin.test")
             setBody("name=x")
         }
         assertEquals(HttpStatusCode.Forbidden, foreignOrigin.status)
