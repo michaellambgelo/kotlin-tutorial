@@ -23,6 +23,7 @@ Deployed to `node5` of the homelab Pi cluster, reachable at `https://kotlin-tuto
 | `GET /htmx` | The same interaction as the home page's Run buttons, with no hand-written JavaScript |
 | `GET /stream/now` | The /now digest over Server-Sent Events, fed by a cold `Flow` |
 | `GET /ws/now` | The WebSocket sibling of `/stream/now` |
+| `GET /signage` | Full-page, TV-sized view of the `/widgets/now.json` digest (poster/box art, QR codes for note links, commit marquee); auto-refreshes every 5 min. Cast via homelab-bot's `/signage` command |
 | `POST /demo-auth/token` | Mints a demo JWT. These routes protect nothing — the real admin, on admin.michaellamb.dev, is gated by Cloudflare Access |
 
 ### Language tour (`/tour/*`)
@@ -65,7 +66,7 @@ The beginner and intermediate sections track the chapters of the official
 
 ### CRUD (`/notes`)
 
-In-memory; restart wipes data.
+Persisted to SQLite-on-disk via Exposed, so data survives restarts and redeploys. DB path: `NOTES_DB_PATH` (the container sets `/app/data/notes.db` on a mounted volume), default `build/notes.db`.
 
 | Method | Path | |
 |---|---|---|
@@ -77,7 +78,7 @@ In-memory; restart wipes data.
 
 ### Widgets (`/widgets/*`)
 
-Server-rendered HTML fragments consumed by the blog's `/now.html` and `/cluster.html`. Each demonstrates one Kotlin feature; all sit behind a 60s in-memory TTL cache.
+Server-rendered HTML fragments consumed by the blog's `/now.html`, `/cluster.html` and `/about.html`, plus one JSON digest. Each demonstrates one Kotlin feature; all sit behind a 60s in-memory TTL cache.
 
 | Endpoint | Renders | Kotlin idea |
 |---|---|---|
@@ -86,18 +87,25 @@ Server-rendered HTML fragments consumed by the blog's `/now.html` and `/cluster.
 | `GET /widgets/cluster` | Uptime Kuma service status | structured concurrency (parallel `async`) |
 | `GET /widgets/github` | commits in last 24h, grouped by repo | `java.time` windows, `groupBy` |
 | `GET /widgets/recently-updated` | curated feed from the now-store Worker | object as HTTP service client |
+| `GET /widgets/projects` | curated Projects list for the blog's `/about` page, with optional status badges | data from this service's own SQLite store (suspended Exposed transaction) |
+| `GET /widgets/now.json` | JSON digest of every /now section (Recently updated, Letterboxd, Steam, GitHub); consumed by homelab-bot's `/now` command | structured concurrency (`coroutineScope { async }`), per-section fallback to empty |
 
 Unconfigured widgets degrade to a non-fatal "not configured" / "unavailable" fragment, so the rest of the app keeps working.
 
 ### Admin (`admin.michaellamb.dev`)
 
-Publish/delete entries for the "Recently updated" feed (`/notes`) and curate the Projects list (`/projects`), with a hub at `/` linking every admin tool. Served only on the admin host (`ADMIN_HOST`). Gated at the edge by **Cloudflare Access** (email one-time-PIN) and in-app by verifying Access's `Cf-Access-Jwt-Assertion` token; open locally for dev. Writes are proxied to the now-store Worker with the Access service token. Locally: `ADMIN_HOST=admin.localhost ./gradlew run`, then open `http://admin.localhost:8080/`.
+Publish/delete entries for the "Recently updated" feed (`/notes`) and curate the Projects list (`/projects`), with a hub at `/` linking every admin tool. Served only on the admin host (`ADMIN_HOST`). Gated at the edge by **Cloudflare Access** (email one-time-PIN) and in-app by verifying Access's `Cf-Access-Jwt-Assertion` token; open locally for dev. Notes writes are proxied to the now-store Worker with the Access service token; Projects writes go straight to the local SQLite store (`projects.db`). Locally: `ADMIN_HOST=admin.localhost ./gradlew run`, then open `http://admin.localhost:8080/`.
 
 | Method | Path (admin host) | |
 |---|---|---|
 | GET | `/notes` | form listing current entries |
 | POST | `/notes/entries` | publish — form fields `body`, `url?`, `expiry` (`today`/`day`/`week`) |
 | POST | `/notes/entries/{id}/delete` | delete an entry |
+| GET | `/projects` | form listing every project (archived included); `?edit=<id>` pre-fills the form |
+| POST | `/projects` | create a project |
+| POST | `/projects/{id}/update` | edit a project |
+| POST | `/projects/{id}/delete` | delete a project |
+| POST | `/projects/{id}/move` | reorder — form field `dir` (`up`/`down`) |
 
 The old `kotlin-tutorial.michaellamb.dev/admin` and `/admin/projects` answer **301** to `/notes` and `/projects` on the admin host (query string kept); every other `/admin` request is a 404.
 
@@ -123,6 +131,8 @@ All optional — widgets and admin degrade gracefully when unset.
 | `ADMIN_HOST` | admin portal hostname (port ignored) | — (portal layout off) |
 | `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` | in-app Access token check on every admin route | — (check off) |
 | `HOMELAB_BOT_STATUS_URL` | hub status dots (homelab-bot `/apps.json`) | — ("status unknown") |
+| `NOTES_DB_PATH` | `/notes` SQLite file | `build/notes.db` (container: `/app/data/notes.db`) |
+| `PROJECTS_DB_PATH` | Projects SQLite file (widget + admin) | `build/projects.db` (container: `/app/data/projects.db`) |
 
 ## Local development
 
